@@ -41,12 +41,18 @@ class TELLO:
         self.image = image_data
  
     def takeoff(self):
+        """
+        Function that makes tello takeoff
+        """
         for i in range(60):
             self.takeoff_pub.publish()
             self.rate.sleep()
     
     def land(self):
         self.land_pub.publish()
+
+    def fast_mode(self):
+        self.fastmode_pub.publish()
     
     def set_velocity(self,x,y,z,ax=0,ay=0,az=0):
         # x positivo tello vai pra frente
@@ -61,25 +67,31 @@ class TELLO:
 
 
 if __name__ == '__main__':
+    
     rospy.init_node('tello_test')
     tello = TELLO("Robin")
     tello.takeoff()
+    tello.fast_mode()
     for i in range(60):
         rospy.loginfo("Indo pra frente")
         tello.set_velocity(0.5,0,0)
         tello.rate.sleep()
+    
     for i in range(60):
         rospy.loginfo("Indo pra direita")
         tello.set_velocity(0,-0.5,0)
         tello.rate.sleep()
+
     for i in range(60):
         rospy.loginfo("Indo pra traz")
         tello.set_velocity(-0.5,0,0)
         tello.rate.sleep()
+        
     for i in range(60):
         rospy.loginfo("Indo pra esquerda")
         tello.set_velocity(0,0.5,0)
         tello.rate.sleep()
+        
     for i in range(60):
         rospy.loginfo("Parando")
         tello.set_velocity(0,0,0)
