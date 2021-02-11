@@ -3,7 +3,7 @@
 import rospy
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Image , Imu
-from std_msgs.msg import Empty
+from std_msgs.msg import Empty, UInt8
 from nav_msgs.msg import Odometry
 
 class TELLO:
@@ -13,6 +13,7 @@ class TELLO:
         self.odometry = Odometry()
         self.imu = Imu()
         self.image = Image()
+        self.flip = UInt8()
         self.empty = Empty()
         self.vel = Twist()
         
@@ -21,6 +22,7 @@ class TELLO:
         self.takeoff_pub = rospy.Publisher("/tello/takeoff", Empty, queue_size=10)
         self.land_pub = rospy.Publisher("/tello/land", Empty, queue_size=10)
         self.fastmode_pub = rospy.Publisher("/tello/fast_mode",Empty,queue_size=10)
+        self.flip_pub = rospy.Publisher("/tello/flip", UInt8,queue_size=10)
 
     
         ########## Subscribers ##################
@@ -44,12 +46,14 @@ class TELLO:
         """
         Function that makes tello takeoff
         """
-        for i in range(60):
+        for i in range(120):
             self.takeoff_pub.publish()
             self.rate.sleep()
     
     def land(self):
-        self.land_pub.publish()
+        for i in range(120):
+            self.land_pub.publish()
+            self.rate.sleep()
 
     def fast_mode(self):
         self.fastmode_pub.publish()
@@ -64,6 +68,11 @@ class TELLO:
         self.vel.angular.y = ay
         self.vel.angular.z = az
         self.vel_pub.publish(self.vel)
+    def make_flip(self,x):
+        self.flip.data = x
+        self.flip_pub.publish(self.flip)
+        for i in range(120):
+            self.rate.sleep()
 
 
 if __name__ == '__main__':
@@ -71,7 +80,8 @@ if __name__ == '__main__':
     rospy.init_node('tello_test')
     tello = TELLO("Robin")
     tello.takeoff()
-    tello.fast_mode()
+    tello.make_flip(1)
+    '''
     for i in range(60):
         rospy.loginfo("Indo pra frente")
         tello.set_velocity(0.5,0,0)
@@ -96,4 +106,5 @@ if __name__ == '__main__':
         rospy.loginfo("Parando")
         tello.set_velocity(0,0,0)
         tello.rate.sleep()
+    '''
     tello.land()
