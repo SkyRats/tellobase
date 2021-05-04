@@ -28,7 +28,8 @@ class TELLO:
         ########## Subscribers ##################
         self.odometry_sub = rospy.Subscriber("/tello/odom", Odometry, self.odometry_callback)
         self.imu_sub = rospy.Subscriber("/tello/imu", Imu, self.imu_callback, queue_size=10)
-        self.image_sub = rospy.Subscriber("/tello/image_raw", Image, self.image_callback)        
+        self.image_sub = rospy.Subscriber("/tello/camera/image_raw", Image, self.image_callback)
+        rospy.wait_for_message("/tello/camera/image_raw", Image)        
         
 
         ###### Callback Functions ##########
@@ -41,7 +42,7 @@ class TELLO:
     
     def image_callback(self, image_data):
         self.image = image_data
- 
+
     def takeoff(self):
         """
         Function that makes tello takeoff
