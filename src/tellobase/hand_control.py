@@ -142,7 +142,7 @@ class interactive_tello_control:
 
     def run_hand_mode(self,mode):
         print("rodando modo " + str(mode))
-        if mode == 1:
+        if mode == 1 and DRONE:
             self.takeoff_finger()
         print("modo " + str(mode) + " encerrado, manda proximo gesto!")
 
