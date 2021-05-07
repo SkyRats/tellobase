@@ -17,7 +17,7 @@ class interactive_tello_control:
             rospy.init_node("interactive_tello_control")
             self.tello = TELLO("robinho pequeno")
             image_message = self.tello.image
-            self.img = np.frombuffer(image_message.data, dtype=np.uint8).reshape(image_message.height, image_message.width, -1)
+            self.img = np.frombuffer(image_message.data, dtype=np.uint8).reshape(image_message.height, image_message.width, 3)
         else:
             self.cap = cv2.VideoCapture(0)  #captures default webcam
             sucess, self.img = self.cap.read()
@@ -83,9 +83,8 @@ class interactive_tello_control:
         return gesto
 
 
-    def main_interface(self):
+    def hand_interface(self):
         queue_modo = [0]
-        modo_atual = 0
         while True:
             if DRONE:
                 image_message = self.tello.image
@@ -105,27 +104,21 @@ class interactive_tello_control:
 
             ########## Colocar os gestos abaixo! ##########
             if gesto == ['indicador']: #Modo 1
-                if modo_atual == 1:
-                    time.sleep(0.01)
-                elif queue_modo[0] != 1:
+                if queue_modo[0] != 1:
                     queue_modo.clear()
                     queue_modo.append(1)
                 else:
                     queue_modo.append(1)
 
             elif gesto == ['indicador', 'meio']: #Modo 2
-                if modo_atual == 2:
-                    time.sleep(0.01)
-                elif queue_modo[0] != 2:
+                if queue_modo[0] != 2:
                     queue_modo.clear()
                     queue_modo.append(2)
                 else:
                     queue_modo.append(2)
 
             elif gesto == ['indicador', 'meio', 'anelar']: #Modo 3
-                if modo_atual == 3:
-                    time.sleep(0.01)
-                elif queue_modo[0] != 3:
+                if queue_modo[0] != 3:
                     queue_modo.clear()
                     queue_modo.append(3)
                 else:
@@ -139,19 +132,22 @@ class interactive_tello_control:
 
 
             if len(queue_modo) >= 20:
-                modo_atual = queue_modo[0]
-                queue_modo.clear()
-                queue_modo.append(modo_atual)
-                self.run_mode(queue_modo[0])
+                mode = queue_modo[0]
+                return mode
 
-    def run_mode(self,mode):
+    def main(self):
+        while not rospy.is_shutdown():
+            mode = self.hand_interface()
+            self.run_hand_mode(mode)
+
+    def run_hand_mode(self,mode):
         print("rodando modo " + str(mode))
         if mode == 1:
-            self.controle_teste()
+            self.takeoff_finger()
         print("modo " + str(mode) + " encerrado, manda proximo gesto!")
 
-    def controle_teste(self):
-        print("insira a funcao aqui!!!")
+    def takeoff_finger(self):
+        self.tello.takeoff()
 
 c = interactive_tello_control()
-c.main_interface()
+c.main()
