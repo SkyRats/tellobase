@@ -8,7 +8,7 @@ import rospy
 import numpy as np
 
 DEBUG = True
-DRONE = True
+DRONE = False
 
 class interactive_tello_control:
 
@@ -22,8 +22,9 @@ class interactive_tello_control:
             self.cap = cv2.VideoCapture(0)  #captures default webcam
             sucess, self.img = self.cap.read()
         self.hands_detector = mp.solutions.hands.Hands(static_image_mode=False, max_num_hands=1, min_detection_confidence=0.75, min_tracking_confidence=0.75)
+        self.face_detector = mp.solutions.face_detection.FaceDetection(min_detection_confidence=0.75)
 
-    def detection_loop(self):
+    def hand_detection_loop(self):
         results = self.hands_detector.process(self.img)
         if results.multi_hand_landmarks:
             hands = results.multi_hand_landmarks
@@ -92,13 +93,13 @@ class interactive_tello_control:
             else:
                 sucess, self.img = self.cap.read()
 
-            handedness, finger_points = self.detection_loop()
+            handedness, finger_points = self.hand_detection_loop()
 
             if DEBUG:
                 cv2.imshow("image", self.img)
                 cv2.waitKey(1)
 
-            if handedness == 0: #detection_loop() found nothing
+            if handedness == 0: #hand_detection_loop() found nothing
                 continue
             gesto = self.fingers_up(handedness, finger_points)
 
@@ -136,6 +137,48 @@ class interactive_tello_control:
             if len(queue_modo) >= 20:
                 mode = queue_modo[0]
                 return mode
+    
+    def face_detection_loop(self):
+        results = self.face_detector.process(self.img)
+        if results.detections:
+            for id,detection in enumerate(results.detections):
+                if DEBUG:
+                    mp.solutions.drawing_utils.draw_detection(self.img, detection)
+        return results.detections
+
+
+    def face_interface(self):
+        detection_queue = []
+        first_detection = False
+        while True:
+            if DRONE:
+                image_message = self.tello.image
+                self.img = np.frombuffer(image_message.data, dtype=np.uint8).reshape(image_message.height, image_message.width, -1)
+            else:
+                sucess, self.img = self.cap.read()
+            
+            detected = self.face_detection_loop()
+
+            if DEBUG:
+                cv2.imshow("image", self.img)
+                cv2.waitKey(1)
+
+            if not first_detection:
+                if detected:
+                    first_detection = True
+                    continue
+                else:
+                    continue
+
+            if detected:
+                detection_queue.clear()
+                continue
+            else:
+                if len(detection_queue) >= 10:
+                    break
+                else:
+                    detection_queue.append(False)
+
 
     def main(self):
         while not rospy.is_shutdown():
@@ -147,10 +190,17 @@ class interactive_tello_control:
         print("rodando modo " + str(mode))
         if mode == 1 and DRONE:
             self.takeoff_finger()
+        if mode == 2:
+            self.face_detection_test_mode()
         print("modo " + str(mode) + " encerrado, manda proximo gesto!")
 
     def takeoff_finger(self):
         self.tello.takeoff()
+    
+    def face_detection_test_mode(self):
+        while True:
+            self.face_interface()
+            print("reset")
 
 c = interactive_tello_control()
 c.main()
