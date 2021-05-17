@@ -130,6 +130,8 @@ class interactive_tello_control:
                 queue_modo.append(0)
             ########## Colocar os gestos acima! ##########
 
+            if queue_modo == [0]: #if nothing is detected, return 0
+                return 0
 
             if len(queue_modo) >= 20:
                 mode = queue_modo[0]
@@ -138,7 +140,8 @@ class interactive_tello_control:
     def main(self):
         while not rospy.is_shutdown():
             mode = self.hand_interface()
-            self.run_hand_mode(mode)
+            if mode != 0:
+                self.run_hand_mode(mode)
 
     def run_hand_mode(self,mode):
         print("rodando modo " + str(mode))
