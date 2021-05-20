@@ -29,8 +29,9 @@ class interactive_tello_control:
         if results_face.detections:
             for detection in results_face.detections:
                 mp.solutions.drawing_utils.draw_detection(self.img, detection)
-            #posicao_centro_rosto_x = (results_face.detections[0].keypoints[0].x+results_face.detections[0].keypoints[1])/2
-        
+            
+            # Pega a posicao do olho direito e do esquerdo e faz a media entre os dois
+            # poscao x eh dada por um valor de 0 a 1 sendo 0 o mais canto esquerda da imagem e 1 o canto direito
             olho_d = mp.solutions.face_detection.get_key_point(results_face.detections[0], mp.solutions.face_detection.FaceKeyPoint.RIGHT_EYE)
             olho_e = mp.solutions.face_detection.get_key_point(results_face.detections[0], mp.solutions.face_detection.FaceKeyPoint.LEFT_EYE)
             posicao_x = (olho_d.x + olho_e.x)/2
@@ -44,12 +45,18 @@ class interactive_tello_control:
             elif posicao_x  > x_central + tolerance:
                 print("Russo, pelo amor de deus vai para a sua direita!!") 
 
+            else:
+                print("Ta no centro x")
+
             if posicao_y  < x_central - tolerance:
                 print("Russo, agacha ai!")
 
             elif posicao_y  > x_central + tolerance:
-                print("Russo, levanta da cadeira!") 
-        #print(results_face.detections)
+                print("Russo, levanta da cadeira!")
+
+            else:
+                print("Tah no centro em y")
+        
             
         
 
