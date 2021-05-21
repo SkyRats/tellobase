@@ -1,6 +1,7 @@
 import cv2
 import mediapipe as mp
 import time
+from TELLO import TELLO
 import rospy
 import numpy as np
 import random
@@ -57,7 +58,15 @@ class interactive_tello_control:
     def run_game(self):
         num_participantes = 10 #Número de participantes ainda aberto -> fazer com as mãos ?
         escolhido = random.randint(1,num_participantes)
+        for i in range(80):
+            tello.takeoff()
+        pessoa = 0
+        while pessoa < escolhido:
+            while face_interface():
+                tello.set_velocity(0, 0, 0, 0, 0, 0.5) # vai girar no sentido anti-horários
+            pessoa += 1
 
-c = interactive_tello_control()
-c.run_game()
+if __name__ == "__main__":
+    c = interactive_tello_control()
+    c.run_game()
     
