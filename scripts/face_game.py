@@ -55,6 +55,8 @@ class interactive_tello_control:
                     continue
 
             if detected:
+                if(self.pessoa +1 == self.escolhido):
+                    return True
                 detection_queue.clear()
                 continue
             else:
@@ -65,8 +67,8 @@ class interactive_tello_control:
 
     def run_game(self):
         num_participantes = 4 #Numero de participantes ainda aberto -> fazer com as maos ?
-        escolhido = random.randint(1,num_participantes)
-        print("Participante escolhido:", escolhido)
+        self.escolhido = random.randint(1,num_participantes)
+        print("Participante escolhido:", self.escolhido)
         if DRONE:
             for i in range(80):
                 self.tello.takeoff()
@@ -74,15 +76,18 @@ class interactive_tello_control:
                     self.tello.set_velocity(0, 0, 0.5, 0, 0, 0)
                     rospy.rate.sleep()
 
-        pessoa = 0
+        self.pessoa = 0
         if DRONE:
             self.tello.set_velocity(0, 0, 0, 0, 0, 0.5) # vai girar no sentido anti-horarios
-        while pessoa < escolhido:
+        while self.pessoa < self.escolhido:
             if self.face_interface():
-                pessoa += 1
+                self.pessoa += 1
+                print("foto de agora", self.pessoa)
+        print("Escolhi voce - Clarice Falcao")
+                
         if DRONE:
             self.tello.set_velocity(0, 0, 0, 0, 0, 0) # para o tello
-        print("Escolhi voce - Clarice Falcao hihihi")
+        
         
         
 if __name__ == "__main__":
