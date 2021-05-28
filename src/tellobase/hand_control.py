@@ -3,8 +3,6 @@
 import cv2
 import mediapipe as mp
 import time
-from TELLO import TELLO
-import rospy
 import numpy as np
 
 DEBUG = True
@@ -14,6 +12,8 @@ class interactive_tello_control:
 
     def __init__(self):
         if DRONE:
+            from TELLO import TELLO
+            import rospy
             rospy.init_node("interactive_tello_control")
             self.tello = TELLO("robinho pequeno")
             image_message = self.tello.image
@@ -83,7 +83,6 @@ class interactive_tello_control:
 
         return gesto
 
-
     def hand_interface(self):
         queue_modo = [0]
         while True:
@@ -146,42 +145,8 @@ class interactive_tello_control:
                     mp.solutions.drawing_utils.draw_detection(self.img, detection)
         return results.detections
 
-
-    def face_interface(self):
-        detection_queue = []
-        first_detection = False
-        while True:
-            if DRONE:
-                image_message = self.tello.image
-                self.img = np.frombuffer(image_message.data, dtype=np.uint8).reshape(image_message.height, image_message.width, -1)
-            else:
-                sucess, self.img = self.cap.read()
-            
-            detected = self.face_detection_loop()
-
-            if DEBUG:
-                cv2.imshow("image", self.img)
-                cv2.waitKey(1)
-
-            if not first_detection:
-                if detected:
-                    first_detection = True
-                    continue
-                else:
-                    continue
-
-            if detected:
-                detection_queue.clear()
-                continue
-            else:
-                if len(detection_queue) >= 10:
-                    break
-                else:
-                    detection_queue.append(False)
-
-
     def main(self):
-        while not rospy.is_shutdown():
+        while True:
             mode = self.hand_interface()
             if mode != 0:
                 self.run_hand_mode(mode)
@@ -191,16 +156,62 @@ class interactive_tello_control:
         if mode == 1 and DRONE:
             self.takeoff_finger()
         if mode == 2:
-            self.face_detection_test_mode()
+            self.mov_control()
+            
         print("modo " + str(mode) + " encerrado, manda proximo gesto!")
 
     def takeoff_finger(self):
         self.tello.takeoff()
     
-    def face_detection_test_mode(self):
-        while True:
-            self.face_interface()
-            print("reset")
+    def mov_control(self):
+        continuar = True
+        while continuar:
+            if DRONE:
+                image_message = self.tello.image
+                self.img = np.frombuffer(image_message.data, dtype=np.uint8).reshape(image_message.height, image_message.width, 3)
+            else:    
+                sucess, self.img = self.cap.read()
+                
+            t0 = time.time()
+            faces = self.face_detection_loop() 
+            while not faces and DRONE and continuar:
+                #self.tello.set_velocity(0,0,0)
+                faces = self.face_detection_loop()
+                t1 = time.time()
+                if t1-t0 > 5:
+                    continuar = False
+
+            if not continuar:
+                break
+    
+            hands = self.hand_detection_loop()
+
+            if DEBUG:
+                cv2.imshow("image", self.img)
+                cv2.waitKey(1)
+                
+            olho_d = mp.solutions.face_detection.get_key_point(faces[0], mp.solutions.face_detection.FaceKeyPoint.RIGHT_EYE)
+            olho_e = mp.solutions.face_detection.get_key_point(faces[0], mp.solutions.face_detection.FaceKeyPoint.LEFT_EYE)
+            posicao_x = (olho_d.x + olho_e.x)/2
+            posicao_y = (olho_d.y + olho_e.y)/2
+            tolerance = 0.05
+            x_central = 0.5
+
+            if posicao_x  < x_central - tolerance:
+                print("Gabs, vai para a sua esquerda por favor <3")
+            elif posicao_x  > x_central + tolerance:
+                print("Gabs, vai para a sua direita pretty please s2") 
+            else:
+                print("Ta no centro em x")
+            if posicao_y  < x_central - tolerance:
+                print("Gabs, agacha ai se vc achar q sim")
+            elif posicao_y  > x_central + tolerance:
+                print("Gabs, levanta da cadeira se vc quiser")
+            else:
+                print("Ta no centro em y")
+
+            
+
 
 c = interactive_tello_control()
 c.main()
