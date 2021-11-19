@@ -12,10 +12,9 @@ class hand_tello_control:
 
     def tello_startup(self):
         # For Tello input:
-        tello = Tello()  # Starts the tello object
-        tello.connect()  # Connects to the drone
+        self.tello = Tello()  # Starts the tello object
+        self.tello.connect()  # Connects to the drone
 
-        return tello
 
     def define_orientation(self, results):
 
@@ -25,16 +24,24 @@ class hand_tello_control:
             orientation = "left hand"
         return orientation
 
-    def action_to_do(self, fingers):
+    def action_to_do(self, fingers, results): #use the variable results for the hand tracking control
 
         if fingers == [0, 1, 0, 0, 0]:
             self.action = "One flip"
+            #self.tello.flip_forward() #check if its working
 
-        elif fingers == [0, 1, 1, 0, 0]:
+        elif fingers == [0, 1, 1, 0, 0]: 
             self.action = "Two flips"
+            #self.tello.flip_forward() #check if there is a time between two tello commands
+
+            #self.tello.flip_forward()
 
         elif fingers == [0, 1, 1, 1, 0]:
             self.action = "Square"
+    
+        elif fingers == [0, 0, 1, 0, 0]:
+            self.action = " :( "
+            #self.tello.land()
         else:
             self.action = " "
 
@@ -70,13 +77,13 @@ class hand_tello_control:
 
         return fingers
 
-    def detection_loop(self, tello):
+    def detection_loop(self):
         with self.mp_hands.Hands(model_complexity=0, min_detection_confidence=0.75,
                                  min_tracking_confidence=0.5) as hands:
-            tello.streamoff()  # Ends the current stream, in case it's still opened
-            tello.streamon()  # Starts a new stream
+            self.tello.streamoff()  # Ends the current stream, in case it's still opened
+            self.tello.streamon()  # Starts a new stream
             while True:
-                frame_read = tello.get_frame_read()  # Stores the current streamed frame
+                frame_read = self.tello.get_frame_read()  # Stores the current streamed frame
                 image = frame_read.frame
 
                 # To improve performance, optionally mark the image as not writeable to
@@ -102,7 +109,7 @@ class hand_tello_control:
                     orientation = self.define_orientation(results)
                     fingers = self.fingers_position(results, orientation)
                     print(fingers)
-                    self.action_to_do(fingers)
+                    self.action_to_do(fingers, results)
 
                 cv2.putText(image, f'Action: {str(self.action)}', (10, 70), cv2.FONT_HERSHEY_PLAIN, 3, (100, 100, 255),
                             3, )
@@ -111,7 +118,10 @@ class hand_tello_control:
                     break
 
     def main_interface(self):
-        self.detection_loop(self.tello_startup())
+        self.tello_startup()
+        self.tello.takeoff()
+        self.detection_loop()
+        self.tello.land()
 
 
 tello_control = hand_tello_control()
