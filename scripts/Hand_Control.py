@@ -24,24 +24,71 @@ class hand_tello_control:
             orientation = "left hand"
         return orientation
 
+    def follow_hand(self, results):
+        normalizedLandmark = results.multi_hand_landmarks[0].landmark[9] # Normalizes the lowest middle-finger coordinate for hand tracking
+        pixelCoordinatesLandmark = self.mp_drawing._normalized_to_pixel_coordinates(normalizedLandmark.x, normalizedLandmark.y, 255, 255) #Tracks the coordinates of the same landmark in a 255x255 grid
+        print(pixelCoordinatesLandmark)
+        centerRange = [10,10] #Range for detecting commands in the x and y axis.
+        centerPoint = [128,128] #Theoretical center of the image
+        if pixelCoordinatesLandmark == None: # If hand goes out of frame, stop following
+            return
+
+        
+        elif pixelCoordinatesLandmark[0] > centerPoint[0] + centerRange[0] and pixelCoordinatesLandmark[1] > centerPoint[1] + centerRange[1]:  # Drone vai para baixo + esquerda (x e y positivo)
+            xCorrection = (pixelCoordinatesLandmark[0] - centerPoint[0])
+            yCorrection = (pixelCoordinatesLandmark[1] - centerPoint[1])
+            ratioX = xCorrection//yCorrection
+            ratioy = yCorrection//xCorrection
+            print(ratioX,ratioy)
+            self.tello.go_xyz_speed(ratioX,ratioy,0,10)
+
+        elif pixelCoordinatesLandmark[0] < centerPoint[0] - centerRange[0] and pixelCoordinatesLandmark[1] < centerPoint[1] - centerRange[1]: # Drone vai para cima + direita (x e y negativo)
+            xCorrection = (pixelCoordinatesLandmark[0] - centerPoint[0])
+            yCorrection = (pixelCoordinatesLandmark[1] - centerPoint[1])
+            ratioX = xCorrection//yCorrection
+            ratioy = yCorrection//xCorrection
+            print(ratioX,ratioy)
+            self.tello.go_xyz_speed(ratioX,ratioy,0,10)
+            
+        elif pixelCoordinatesLandmark[0] > centerPoint[0] + centerRange[0] and pixelCoordinatesLandmark[1] < centerPoint[1] - centerRange[1]: #Drone vai para baixo + direita (x positivo, y negativo)
+            xCorrection = (pixelCoordinatesLandmark[0] - centerPoint[0])
+            yCorrection = (pixelCoordinatesLandmark[1] - centerPoint[1])
+            ratioX = xCorrection//yCorrection
+            ratioy = yCorrection//xCorrection
+            print(ratioX,ratioy)
+            self.tello.go_xyz_speed(ratioX,ratioy,0,10)
+
+        elif pixelCoordinatesLandmark[0] < centerPoint[0] - centerRange[0] and pixelCoordinatesLandmark[1] > centerPoint[1] + centerRange[1]: #Drone vai para cima e esquerda (x negativo, y positivo)
+            xCorrection = (pixelCoordinatesLandmark[0] - centerPoint[0])
+            yCorrection = (pixelCoordinatesLandmark[1] - centerPoint[1])
+            ratioX = xCorrection//yCorrection
+            ratioy = yCorrection//xCorrection
+            print(ratioX,ratioy)
+            self.tello.go_xyz_speed(ratioX,ratioy,0,10)
+        
+        
+    
     def action_to_do(self, fingers, results): #use the variable results for the hand tracking control
 
         if fingers == [0, 1, 0, 0, 0]:
             self.action = "One flip"
-            #self.tello.flip_forward() #check if its working
+            #self.tello.flip_forward() #Flips once - Working!
 
         elif fingers == [0, 1, 1, 0, 0]: 
             self.action = "Two flips"
             #self.tello.flip_forward() #check if there is a time between two tello commands
-
-            #self.tello.flip_forward()
+            #It does, but it also queues up more flips while you wait.(Also, freezes the camera ;-;)
+            #self.tello.flip_back()
 
         elif fingers == [0, 1, 1, 1, 0]:
             self.action = "Square"
     
+        elif fingers == [1, 1, 1, 1, 1]:
+            self.action = "Follow"
+            self.follow_hand(results)
         elif fingers == [0, 0, 1, 0, 0]:
             self.action = " :( "
-            #self.tello.land()
+            self.tello.land()
         else:
             self.action = " "
 
@@ -105,10 +152,10 @@ class hand_tello_control:
                             self.mp_hands.HAND_CONNECTIONS,
                             self.mp_drawing_styles.get_default_hand_landmarks_style(),
                             self.mp_drawing_styles.get_default_hand_connections_style())
-
+                    
                     orientation = self.define_orientation(results)
                     fingers = self.fingers_position(results, orientation)
-                    print(fingers)
+                    #print(fingers)
                     self.action_to_do(fingers, results)
 
                 cv2.putText(image, f'Action: {str(self.action)}', (10, 70), cv2.FONT_HERSHEY_PLAIN, 3, (100, 100, 255),
@@ -121,7 +168,7 @@ class hand_tello_control:
         self.tello_startup()
         self.tello.takeoff()
         self.detection_loop()
-        self.tello.land()
+        #self.tello.land() 
 
 
 tello_control = hand_tello_control()
