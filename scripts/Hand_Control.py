@@ -1,6 +1,5 @@
 import cv2
 import mediapipe as mp
-from djitellopy import Tello
 
 
 class hand_tello_control:
@@ -9,13 +8,8 @@ class hand_tello_control:
         self.mp_drawing = mp.solutions.drawing_utils
         self.mp_drawing_styles = mp.solutions.drawing_styles
         self.mp_hands = mp.solutions.hands
-
-    def tello_startup(self):
-        # For Tello input:
-        tello = Tello()  # Starts the tello object
-        tello.connect()  # Connects to the drone
-
-        return tello
+        # For webcam input:
+        self.cap = cv2.VideoCapture(0)
 
     def define_orientation(self, results):
 
@@ -61,7 +55,7 @@ class hand_tello_control:
         fingermarkList = [8, 12, 16, 20]
         i = 1
         for k in fingermarkList:
-            if results.multi_hand_landmarks[0].landmark[k].y > results.multi_hand_landmarks[0].landmark[k - 2].y:
+            if results.multi_hand_landmarks[0].landmark[k].y > results.multi_hand_landmarks[0].landmark[k-2].y:
                 fingers[i] = 0
             else:
                 fingers[i] = 1
@@ -70,14 +64,14 @@ class hand_tello_control:
 
         return fingers
 
-    def detection_loop(self, tello):
-        with self.mp_hands.Hands(model_complexity=0, min_detection_confidence=0.75,
-                                 min_tracking_confidence=0.5) as hands:
-            tello.streamoff()  # Ends the current stream, in case it's still opened
-            tello.streamon()  # Starts a new stream
-            while True:
-                frame_read = tello.get_frame_read()  # Stores the current streamed frame
-                image = frame_read.frame
+    def detection_loop(self):
+        with self.mp_hands.Hands(model_complexity = 0, min_detection_confidence=0.75, min_tracking_confidence=0.5) as hands:
+            while self.cap.isOpened():
+                success, image = self.cap.read()
+                if not success:
+                    print("Ignoring empty camera frame.")
+                    # If loading a video, use 'break' instead of 'continue'.
+                    continue
 
                 # To improve performance, optionally mark the image as not writeable to
                 # pass by reference.
@@ -104,15 +98,13 @@ class hand_tello_control:
                     print(fingers)
                     self.action_to_do(fingers)
 
-                cv2.putText(image, f'Action: {str(self.action)}', (10, 70), cv2.FONT_HERSHEY_PLAIN, 3, (100, 100, 255),
-                            3, )
+                cv2.putText(image, f'Action: {str(self.action)}', (10, 70), cv2.FONT_HERSHEY_PLAIN, 3, (100, 100, 255), 3, )
                 cv2.imshow("image", image)
                 if cv2.waitKey(5) & 0xFF == 27:
                     break
 
     def main_interface(self):
-        self.detection_loop(self.tello_startup())
-
+        self.detection_loop()
 
 tello_control = hand_tello_control()
 tello_control.main_interface()
