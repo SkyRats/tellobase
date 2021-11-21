@@ -143,6 +143,17 @@ class hand_tello_control:
                 image.flags.writeable = True
                 image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
+                self.battery = self.tello.query_battery()
+
+                if 75 <= self.battery <= 100:
+                    color = (0, 150, 0)  # Green (BGR)
+
+                elif 50 <= self.battery < 75:
+                    color = (0, 255, 255)  # Yellow
+
+                elif 0 <= self.battery < 50:
+                    color = (0, 0, 255)  # Red
+
                 if results.multi_hand_landmarks:
                     action = " "
                     for hand_landmarks in results.multi_hand_landmarks:
@@ -160,6 +171,9 @@ class hand_tello_control:
 
                 cv2.putText(image, f'Action: {str(self.action)}', (10, 70), cv2.FONT_HERSHEY_PLAIN, 3, (100, 100, 255),
                             3, )
+
+                cv2.putText(image, f'Battery: {str(self.battery)}%', (10, 450), cv2.FONT_HERSHEY_PLAIN, 3, color, 3, )
+                
                 cv2.imshow("image", image)
                 if cv2.waitKey(5) & 0xFF == 27:
                     break
