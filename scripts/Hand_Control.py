@@ -36,15 +36,15 @@ class hand_tello_control:
         
         centerRange = [20,20] #Range for detecting commands in the x and y axis.
         centerPoint = [128,128] #Theoretical center of the image
-        xCorrection = pixelCoordinatesLandmark[0] - centerPoint[0]
+        xCorrection = pixelCoordinatesLandmark[0] - centerPoint[0] 
         yCorrection = pixelCoordinatesLandmark[1] - centerPoint[1]
         xSpeed = 0
         ySpeed = 0
 
-        if xCorrection > centerRange[0] or xCorrection < -centerRange[0]:
-            xSpeed = xCorrection
+        if xCorrection > centerRange[0] or xCorrection < -centerRange[0]: #If the hand is outside the acceptable range, changes the current speed to compensate.
+            xSpeed = xCorrection//3
         if yCorrection > centerRange[1] or yCorrection < -centerRange[1]:
-            ySpeed = yCorrection
+            ySpeed = -yCorrection//3
 
 
         self.tello.send_rc_control(xSpeed,0,ySpeed,0)
@@ -89,7 +89,9 @@ class hand_tello_control:
             if fingers == [1, 1, 1, 1, 1]:
                 self.action = "Follow"
                 self.follow_hand(results)
-           
+            elif fingers == [1, 0, 0, 0, 0]:
+                self.action = "Land"
+                self.tello.land()           
             else:
                 self.action = " "
 
@@ -173,7 +175,7 @@ class hand_tello_control:
         self.tello_startup()
         self.tello.takeoff()
         self.detection_loop()
-        #self.tello.land() 
+        
 
 
 tello_control = hand_tello_control()
