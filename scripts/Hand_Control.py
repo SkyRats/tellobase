@@ -72,6 +72,11 @@ class hand_tello_control:
                 self.tello.flip_left()
             elif fingers == [0, 1, 1, 1, 0]:
                 self.action = "Square"
+                self.tello.move_left(20)
+                self.tello.move_up(40)
+                self.tello.move_right(40)
+                self.tello.move_down(40)
+                self.tello.move_left(20)
     
             elif fingers == [0, 0, 1, 0, 0]:
                 self.action = " :( "
