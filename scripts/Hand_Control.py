@@ -1,4 +1,4 @@
-import cv2,time
+import cv2, time
 import mediapipe as mp
 from djitellopy import Tello
 
@@ -61,13 +61,13 @@ class hand_tello_control:
                 self.action = "flip forward"
                 self.tello.flip_forward() 
 
-            elif fingers == [0, 1, 1, 0, 0]: 
+            elif fingers == [0, 1, 1, 0, 0] and self.tricks == True:
                 self.action = "flip back"
                 self.tello.flip_back()
-            elif fingers == [1, 0, 0, 0, 0]: 
+            elif fingers == [1, 0, 0, 0, 0] and self.tricks == True:
                 self.action = "flip right"
                 self.tello.flip_right()
-            elif fingers == [0, 0, 0, 0, 1]: 
+            elif fingers == [0, 0, 0, 0, 1] and self.tricks == True:
                 self.action = "flip left"
                 self.tello.flip_left()
             elif fingers == [0, 1, 1, 1, 0]:
@@ -81,7 +81,12 @@ class hand_tello_control:
             elif fingers == [0, 0, 1, 0, 0]:
                 self.action = " :( "
                 self.tello.land()
-            
+
+            elif (self.tricks == False) and (fingers != [0, 1, 1, 1, 0]): #not avaiable to do tricks
+                self.tello.rotate_clockwise(45)
+                self.tello.rotate_counter_clockwise(90)
+                self.tello.rotate_clockwise(45)
+
             else:
                 self.action = " "
 
@@ -136,6 +141,12 @@ class hand_tello_control:
             while True:
                 frame_read = self.tello.get_frame_read()  # Stores the current streamed frame
                 image = frame_read.frame
+                self.battery = self.tello.get_battery()
+                if self.battery <= 50:
+                    self.tricks = False
+
+                else:
+                    self.tricks = True
 
                 # To improve performance, optionally mark the image as not writeable to
                 # pass by reference.
@@ -166,7 +177,7 @@ class hand_tello_control:
                 cv2.putText(image, f'Action: {str(self.action)}', (10, 70), cv2.FONT_HERSHEY_PLAIN, 3, (100, 100, 255),
                             3, )
 
-                
+
                 cv2.imshow("image", image)
                 if cv2.waitKey(5) & 0xFF == 27:
                     break
