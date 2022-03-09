@@ -10,14 +10,7 @@ class hand_tello_control:
         self.mp_drawing_styles = mp.solutions.drawing_styles
         self.mp_hands = mp.solutions.hands
         self.action_done = False
-        self.ffoward = 1
-        self.fback = 1
-        self.fright = 1
-        self.fleft = 1
-        self.fsquare = 1
-        self.fmiddle = 1
-        self.fno = 1
-        self.fland = 1
+        self.tricks = [1,1,1,1,1,1,1,1] #forward flip, back flip, right flip, left flip, square, :(, battery, land 
 
     def tello_startup(self):
         # For Tello input:
@@ -28,9 +21,9 @@ class hand_tello_control:
     def define_orientation(self, results):
 
         if results.multi_hand_landmarks[0].landmark[4].x < results.multi_hand_landmarks[0].landmark[17].x:
-            orientation = "right hand"
-        else:
             orientation = "left hand"
+        else:
+            orientation = "right hand"
         return orientation
 
     def follow_hand(self, results):
@@ -61,47 +54,54 @@ class hand_tello_control:
         self.tello.send_rc_control(0,0,0,0)
         
         
-    
+    def commandReset(self, trick): #Resets command counters in action_to_do function, excluding the current count
+        if trick == -1:
+            self.tricks = [1,1,1,1,1,1,1,1]
+            return
+        for i in range(0,7):
+            if i != trick:
+                self.tricks[i] = 1
+        return
+
     def action_to_do(self, fingers, orientation, results): #use the variable results for the hand tracking control
-       
-        if self.action_done == True:
-            self.ffoward = 1
-            self.fback = 1
-            self.fright = 1
-            self.fleft = 1
-            self.fsquare = 1
-            self.fmiddle = 1
-            self.fno = 1
-            self.fland = 1
+        
+        if self.action_done == True: #Resets counters when a trick was performed
+            self.commandReset(-1)
             self.action_done = False
+
         #Left hand controls tricks, right hand controls movement
         if orientation == "left hand":   #Thumb on the left = left hand!
-            if fingers == [0, 1, 0, 0, 0]:
-                if self.ffoward >= 15:
+            if fingers == [0, 1, 0, 0, 0] and self.battery ==  True:
+                if self.tricks[0] >= 15:
                     self.action = "flip forward"
                     self.tello.flip_forward() 
                     self.action_done = True
-                self.ffoward = self.ffoward + 1
+                self.tricks[0] = self.tricks[0] + 1
+                self.commandReset(0)
+ 
             elif fingers == [0, 1, 1, 0, 0] and self.battery ==  True:
-                if self.fback >= 15:
+                if self.tricks[1] >= 15:
                     self.action = "flip back"
                     self.tello.flip_back()
                     self.action_done = True
-                self.fback = self.fback + 1
-            elif fingers == [1, 0, 0, 0, 0] and self.battery ==  True:
-                if self.fright >= 15:
+                self.tricks[1] = self.tricks[1] + 1
+                self.commandReset(1)
+            elif fingers == [0, 0, 0, 0, 1] and self.battery ==  True:
+                if self.tricks[2] >= 15:
                     self.action = "flip right"
                     self.tello.flip_right()
                     self.action_done = True
-                self.fright = self.fright + 1
-            elif fingers == [0, 0, 0, 0, 1] and self.battery ==  True:
-                if self.fleft >= 15:
+                self.tricks[2] = self.tricks[2] + 1
+                self.commandReset(2)
+            elif fingers == [1, 0, 0, 0, 0] and self.battery ==  True:
+                if self.tricks[3] >= 15:
                     self.action = "flip left"
                     self.tello.flip_left()
                     self.action_done = True
-                self.fleft = self.fleft + 1
+                self.tricks[3] = self.tricks[3] + 1
+                self.commandReset(3)
             elif fingers == [0, 1, 1, 1, 0]:
-                if self.fsquare >= 15:
+                if self.tricks[4] >= 15:
                     self.action = "Square"
                     self.tello.move_left(20)
                     self.tello.move_up(40)
@@ -109,35 +109,49 @@ class hand_tello_control:
                     self.tello.move_down(40)
                     self.tello.move_left(20)
                     self.action_done = True
-                self.fsquare = self.fsquare + 1
+                self.tricks[4] = self.tricks[4] + 1
+                self.commandReset(4)
             elif fingers == [0, 0, 1, 0, 0]:
-                if self.fmiddle >= 15:
+                if self.tricks[5] >= 30:
                     self.action = " :( "
                     self.tello.land()
                     self.action_done = True
-                self.fmiddle = self.fmiddle + 1  
+                self.tricks[5] = self.tricks[5] + 1 
+                self.commandReset(5) 
             elif ((self.battery == False) and (fingers == [1, 0, 0, 0, 0] or fingers == [0, 1, 0, 0, 0] or fingers == [0, 0, 0, 0, 1])): #not avaiable to do tricks
-                if self.fno >= 15:
+                if self.tricks[6] >= 15:
                     self.tello.rotate_clockwise(45)
                     self.tello.rotate_counter_clockwise(90)
                     self.tello.rotate_clockwise(45)
                     self.action_done = True
-                self.fno = self.fno + 1      
+                self.tricks[6] = self.tricks[6] + 1
+                self.commandReset(6)      
             else:
                 self.action = " "
+                self.commandReset(-1)
 
         elif orientation == "right hand":  #Thumb on the right = right hand!
             if fingers == [1, 1, 1, 1, 1]:
                 self.action = "Follow"
                 self.follow_hand(results)
+                self.commandReset(-1)
             elif fingers == [1, 0, 0, 0, 0]:
-                if self.fland >= 15:
+                if self.tricks[7] >= 30:
                     self.action = "Land"
                     self.tello.land()
                     self.action_done = True
-                self.fland = self.fland + 1           
+                self.tricks[7] = self.tricks[7] + 1 
+                self.commandReset(7)          
             else:
                 self.action = " "
+                self.commandReset(-1)
+                
+    def batteryCheck(self):#Checks battery levels, returns bool based on trick ability
+        btLevel = self.tello.get_battery()
+        if btLevel <= 50:
+            return False
+        else:
+            return True
 
 
     def fingers_position(self, results, orientation):
@@ -147,17 +161,17 @@ class hand_tello_control:
         fingers = [0, 0, 0, 0, 0]
 
         if (results.multi_hand_landmarks[0].landmark[4].x > results.multi_hand_landmarks[0].landmark[
-            3].x) and orientation == "right hand":
+            3].x) and orientation == "left hand":
             fingers[0] = 0
         if (results.multi_hand_landmarks[0].landmark[4].x < results.multi_hand_landmarks[0].landmark[
-            3].x) and orientation == "right hand":
+            3].x) and orientation == "left hand":
             fingers[0] = 1
 
         if (results.multi_hand_landmarks[0].landmark[4].x > results.multi_hand_landmarks[0].landmark[
-            3].x) and orientation == "left hand":
+            3].x) and orientation == "right hand":
             fingers[0] = 1
         if (results.multi_hand_landmarks[0].landmark[4].x < results.multi_hand_landmarks[0].landmark[
-            3].x) and orientation == "left hand":
+            3].x) and orientation == "right hand":
             fingers[0] = 0
 
         fingermarkList = [8, 12, 16, 20]
@@ -180,12 +194,7 @@ class hand_tello_control:
             while True:
                 frame_read = self.tello.get_frame_read()  # Stores the current streamed frame
                 image = frame_read.frame
-                self.battery = self.tello.get_battery()
-                if self.battery <= 50:
-                    self.tricks = False
-
-                else:
-                    self.tricks = True
+                self.battery = self.batteryCheck()
 
                 # To improve performance, optionally mark the image as not writeable to
                 # pass by reference.
