@@ -11,6 +11,15 @@ class hand_tello_control:
         self.mp_drawing = mp.solutions.drawing_utils
         self.mp_drawing_styles = mp.solutions.drawing_styles
         self.mp_hands = mp.solutions.hands
+        self.action_done = True
+        self.ffoward = 1
+        self.fback = 1
+        self.fright = 1
+        self.fleft = 1
+        self.fsquare = 1
+        self.fmiddle = 1
+        self.fno = 1
+        self.fland = 1
 
     def tello_startup(self):
         # For Tello input:
@@ -36,7 +45,7 @@ class hand_tello_control:
             return
         
         
-        centerRange = [20,20] #Range for detecting commands in the x and y axis.
+        centerRange = [12,12] #Range for detecting commands in the x and y axis.
         centerPoint = [128,128] #Theoretical center of the image
         xCorrection = pixelCoordinatesLandmark[0] - centerPoint[0] 
         yCorrection = pixelCoordinatesLandmark[1] - centerPoint[1]
@@ -57,38 +66,65 @@ class hand_tello_control:
     
     def action_to_do(self, fingers, orientation, results): #use the variable results for the hand tracking control
         
+        if self.action_done == True:
+            self.ffoward = 1
+            self.fback = 1
+            self.fright = 1
+            self.fleft = 1
+            self.fsquare = 1
+            self.fmiddle = 1
+            self.fno = 1
+            self.fland = 1
+            self.action_done = False
         #Left hand controls tricks, right hand controls movement
         if orientation == "left hand":   #Thumb on the left = left hand!
-            if (fingers == [0, 1, 0, 0, 0]) and (self.tricks == True):
-                self.action = "flip forward"
-                self.tello.flip_forward() 
-            elif (fingers == [0, 1, 1, 0, 0]) and (self.tricks == True): 
-                self.action = "flip back"
-                self.tello.flip_back()
-            elif (fingers == [1, 0, 0, 0, 0]) and (self.tricks == True): 
-                self.action = "flip right"
-                self.tello.flip_right()
-            elif (fingers == [0, 0, 0, 0, 1]) and (self.tricks == True): 
-                self.action = "flip left"
-                self.tello.flip_left()
+            if fingers == [0, 1, 0, 0, 0]:
+                if self.ffoward >= 15:
+                    self.action = "flip forward"
+                    self.tello.flip_forward() 
+                    self.action_done = True
+                self.ffoward = self.ffoward + 1
+            elif fingers == [0, 1, 1, 0, 0] and self.battery ==  True:
+                if self.fback >= 15:
+                    self.action = "flip back"
+                    self.tello.flip_back()
+                    self.action_done = True
+                self.fback = self.fback + 1
+            elif fingers == [1, 0, 0, 0, 0] and self.battery ==  True:
+                if self.fright >= 15:
+                    self.action = "flip right"
+                    self.tello.flip_right()
+                    self.action_done = True
+                self.fright = self.fright + 1
+            elif fingers == [0, 0, 0, 0, 1] and self.battery ==  True:
+                if self.fleft >= 15:
+                    self.action = "flip left"
+                    self.tello.flip_left()
+                    self.action_done = True
+                self.fleft = self.fleft + 1
             elif fingers == [0, 1, 1, 1, 0]:
-                self.action = "Square"
-                self.tello.move_left(20)
-                self.tello.move_up(40)
-                self.tello.move_right(40)
-                self.tello.move_down(40)
-                self.tello.move_left(20)
-    
+                if self.fsquare >= 15:
+                    self.action = "Square"
+                    self.tello.move_left(20)
+                    self.tello.move_up(40)
+                    self.tello.move_right(40)
+                    self.tello.move_down(40)
+                    self.tello.move_left(20)
+                    self.action_done = True
+                self.fsquare = self.fsquare + 1
             elif fingers == [0, 0, 1, 0, 0]:
-                self.action = " :( "
-                self.tello.land()
-                return 0
-                
-            elif ((self.tricks == False) and ((fingers == [1, 0, 0, 0, 0]) or (fingers == [0, 1, 0, 0, 0]) or (fingers == [0, 0, 0, 0, 1]))): #not avaiable to do tricks
-                self.tello.rotate_clockwise(45)
-                self.tello.rotate_counter_clockwise(90)
-                self.tello.rotate_clockwise(45)
-            
+                if self.fmiddle >= 15:
+                    self.action = " :( "
+                    self.tello.land()
+                    self.action_done = True
+                self.fmiddle = self.fmiddle + 1  
+            elif ((self.battery == False) and (fingers == [1, 0, 0, 0, 0] or fingers == [0, 1, 0, 0, 0] or fingers == [0, 0, 0, 0, 1])): #not avaiable to do tricks
+                if self.fno >= 15:
+                    self.tello.rotate_clockwise(45)
+                    self.tello.rotate_counter_clockwise(90)
+                    self.tello.rotate_clockwise(45)
+                    self.action_done = True
+                self.fno = self.fno + 1      
             else:
                 self.action = " "
 
@@ -97,9 +133,11 @@ class hand_tello_control:
                 self.action = "Follow"
                 self.follow_hand(results)
             elif fingers == [1, 0, 0, 0, 0]:
-                self.action = "Land"
-                self.tello.land()
-                return 0           
+                if self.fland >= 15:
+                    self.action = "Land"
+                    self.tello.land()
+                    self.action_done = True
+                self.fland = self.fland + 1           
             else:
                 self.action = " "
                 
@@ -173,14 +211,16 @@ class hand_tello_control:
                     #print(fingers)
                     self.action_to_do(fingers, orientation, results)
                     
-                if pg.key.get_pressed()[pg.K_l] == True:
-                    self.tello.land()
-                if pg.key.get_pressed()[pg.K_t] == True:
-                    self.tello.takeoff()
-                if pg.key.get_pressed()[pg.K_b] == True:
-                    print("A bateria esta em ", self.tello.get_battery(), "%\n")
-                if pg.key.get_pressed()[pg.K_m] == True:
-                    return 0
+                for event in pg.event.get():
+                    if event.type == pg.KEYDOWN:
+                        if event.key == pg.K_l:
+                            self.tello.land()
+                        if event.key == pg.K_t:
+                            self.tello.takeoff()
+                        if event.key == pg.K_b:
+                            print("A bateria esta em ", self.tello.get_battery(), "%")
+                        if event.key == pg.K_m:
+                            return 0
 
                 cv2.imshow("image", image)
                 if cv2.waitKey(5) & 0xFF == 27:
@@ -203,30 +243,28 @@ class hand_tello_control:
             image.flags.writeable = True
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             
-            if pg.key.get_pressed()[pg.K_w] == True:
-                self.tello.move_forward(5)
-            if pg.key.get_pressed()[pg.K_a] == True:
-                self.tello.move_left(5)
-            if pg.key.get_pressed()[pg.K_s] == True:
-                self.tello.move_back(5)
-            if pg.key.get_pressed()[pg.K_d] == True:
-                self.tello.move_right(5)
-            if pg.key.get_pressed()[pg.K_q] == True:
-                self.tello.rotate_counter_clockwise(5)
-            if pg.key.get_pressed()[pg.K_e] == True:
-                self.tello.rotate_clockwise(5)
-            if pg.key.get_pressed()[pg.K_SPACE] == True:
-                self.tello.move_up(5)
-            if pg.key.get_pressed()[pg.K_LCTRL] == True:
-                self.tello.move_down(5)
-            if pg.key.get_pressed()[pg.K_l] == True:
-                self.tello.land()
-            if pg.key.get_pressed()[pg.K_t] == True:
-                self.tello.takeoff()
-            if pg.key.get_pressed()[pg.K_b] == True:
-                print("A bateria esta em ", self.tello.get_battery(), "%\n")
-            if pg.key.get_pressed()[pg.K_m] == True:
-                return 0
+            for event in pg.event.get():
+                if event.type == pg.KEYDOWN:
+                    if event.key == pg.K_w:
+                        self.tello.move_forward(20)
+                    if event.key == pg.K_a:
+                        self.tello.move_left(20)
+                    if event.key == pg.K_s:
+                        self.tello.move_back(20)
+                    if event.key == pg.K_d:
+                        self.tello.move_right(20)
+                    if event.key == pg.K_q:
+                        self.tello.rotate_counter_clockwise(20)
+                    if event.key == pg.K_e:
+                        self.tello.rotate_clockwise(20)
+                    if event.key == pg.K_SPACE:
+                        self.tello.move_up(20)
+                    if event.key == pg.K_LCTRL:
+                        self.tello.move_down(20)
+                    if event.key == pg.K_b:
+                        print("A bateria esta em ", self.tello.get_battery(), "%")
+                    if event.key == pg.K_m:
+                        return 0
     
             cv2.imshow("image", image)
             if cv2.waitKey(5) & 0xFF == 27:
@@ -238,10 +276,18 @@ class hand_tello_control:
     def main_interface(self):
         telloMode = -1
         self.tello_startup()
+        pg.init()
+        win = pg.display.set_mode((500,500))
+        pg.display.set_caption("Test")
+        #self.tello.takeoff()
+        
+        print("Para controlar pelo teclado, digite 1")
+        print("Para controlar com a mao, digite 2")
+        print("Para sair, digite 0")
 
         self.tello.streamoff()  # Ends the current stream, in case it's still opened
         self.tello.streamon()  # Starts a new stream
-        while True:
+        while telloMode != 0:
             frame_read = self.tello.get_frame_read()  # Stores the current streamed frame
             image = frame_read.frame
 
@@ -252,54 +298,44 @@ class hand_tello_control:
 
             # Draw the hand annotations on the image.
             image.flags.writeable = True
-            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)              
-
-            print("Para controlar pelo teclado, digite 1\n")
-            print("Para controlar com a mao, digite 2\n")
-            print("Para sair, digite 0\n")
-                
-            while telloMode != 0:
-                if telloMode == 1:
-                    self.key_control()
-                    telloMode = -1
-                    print("Para controlar pelo teclado, digite 1\n")
-                    print("Para controlar com a mao, digite 2\n")
-                    print("Para sair, digite 0\n")
-                elif telloMode == 2:
-                    self.detection_loop()
-                    telloMode = -1
-                    print("Para controlar pelo teclado, digite 1\n")
-                    print("Para controlar com a mao, digite 2\n")
-                    print("Para sair, digite 0\n")
-                elif telloMode == 0:
-                    self.tello.land()
-                    telloMode = -1
-                    print("Obrigado por voar hoje\n")
-                elif telloMode != -1 and telloMode != 1 and telloMode != 2:
-                    print("valor invalido!\n")
-                if pg.key.get_pressed()[pg.K_1] == True:
-                    telloMode = 1
-                if pg.key.get_pressed()[pg.K_2] == True:
-                    telloMode = 2
-                if pg.key.get_pressed()[pg.K_0] == True:
-                    telloMode = 0
-                if pg.key.get_pressed()[pg.K_l] == True:
-                    self.tello.land()
-                if pg.key.get_pressed()[pg.K_t] == True:
-                    self.tello.takeoff()
-                if pg.key.get_pressed()[pg.K_b] == True:
-                    print("A bateria esta em ", self.tello.get_battery(), "%\n")
-                    
-            if pg.key.get_pressed()[pg.K_l] == True:
-                self.tello.land()
-            if pg.key.get_pressed()[pg.K_t] == True:
-                self.tello.takeoff()
-            if pg.key.get_pressed()[pg.K_b] == True:
-                print("A bateria esta em ", self.tello.get_battery(), "%\n")
-                
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)  
+            
             cv2.imshow("image", image)
             if cv2.waitKey(5) & 0xFF == 27:
                 break
+        
+            if telloMode == 1:
+                self.key_control()
+                telloMode = -1
+                print("Para controlar pelo teclado, digite 1")
+                print("Para controlar com a mao, digite 2")
+                print("Para sair, digite 0")
+            elif telloMode == 2:
+                self.detection_loop()
+                telloMode = -1
+                print("Para controlar pelo teclado, digite 1")
+                print("Para controlar com a mao, digite 2")
+                print("Para sair, digite 0")
+            elif telloMode == 0:
+                self.tello.land()
+                telloMode = -1
+                print("Obrigado por voar hoje")
+            elif telloMode != -1 and telloMode != 1 and telloMode != 2:
+                print("valor invalido!")
+            for event in pg.event.get():
+                if event.type == pg.KEYDOWN:
+                    if event.key == pg.K_1:
+                        telloMode = 1
+                    if event.key == pg.K_2:
+                        telloMode = 2
+                    if event.key == pg.K_0:
+                        telloMode = 0
+                    if event.key == pg.K_l:
+                        self.tello.land()
+                    if event.key == pg.K_t:
+                        self.tello.takeoff()
+                    if event.key == pg.K_b:
+                        print("A bateria esta em ", self.tello.get_battery(), "%")
         
 
 tello_control = hand_tello_control()

@@ -9,6 +9,15 @@ class hand_tello_control:
         self.mp_drawing = mp.solutions.drawing_utils
         self.mp_drawing_styles = mp.solutions.drawing_styles
         self.mp_hands = mp.solutions.hands
+        self.action_done = False
+        self.ffoward = 1
+        self.fback = 1
+        self.fright = 1
+        self.fleft = 1
+        self.fsquare = 1
+        self.fmiddle = 1
+        self.fno = 1
+        self.fland = 1
 
     def tello_startup(self):
         # For Tello input:
@@ -34,7 +43,7 @@ class hand_tello_control:
             return
         
         
-        centerRange = [20,20] #Range for detecting commands in the x and y axis.
+        centerRange = [12,12] #Range for detecting commands in the x and y axis.
         centerPoint = [128,128] #Theoretical center of the image
         xCorrection = pixelCoordinatesLandmark[0] - centerPoint[0] 
         yCorrection = pixelCoordinatesLandmark[1] - centerPoint[1]
@@ -55,38 +64,65 @@ class hand_tello_control:
     
     def action_to_do(self, fingers, orientation, results): #use the variable results for the hand tracking control
        
+        if self.action_done == True:
+            self.ffoward = 1
+            self.fback = 1
+            self.fright = 1
+            self.fleft = 1
+            self.fsquare = 1
+            self.fmiddle = 1
+            self.fno = 1
+            self.fland = 1
+            self.action_done = False
         #Left hand controls tricks, right hand controls movement
         if orientation == "left hand":   #Thumb on the left = left hand!
             if fingers == [0, 1, 0, 0, 0]:
-                self.action = "flip forward"
-                self.tello.flip_forward() 
-
-            elif fingers == [0, 1, 1, 0, 0] and self.tricks == True:
-                self.action = "flip back"
-                self.tello.flip_back()
-            elif fingers == [1, 0, 0, 0, 0] and self.tricks == True:
-                self.action = "flip right"
-                self.tello.flip_right()
-            elif fingers == [0, 0, 0, 0, 1] and self.tricks == True:
-                self.action = "flip left"
-                self.tello.flip_left()
+                if self.ffoward >= 15:
+                    self.action = "flip forward"
+                    self.tello.flip_forward() 
+                    self.action_done = True
+                self.ffoward = self.ffoward + 1
+            elif fingers == [0, 1, 1, 0, 0] and self.battery ==  True:
+                if self.fback >= 15:
+                    self.action = "flip back"
+                    self.tello.flip_back()
+                    self.action_done = True
+                self.fback = self.fback + 1
+            elif fingers == [1, 0, 0, 0, 0] and self.battery ==  True:
+                if self.fright >= 15:
+                    self.action = "flip right"
+                    self.tello.flip_right()
+                    self.action_done = True
+                self.fright = self.fright + 1
+            elif fingers == [0, 0, 0, 0, 1] and self.battery ==  True:
+                if self.fleft >= 15:
+                    self.action = "flip left"
+                    self.tello.flip_left()
+                    self.action_done = True
+                self.fleft = self.fleft + 1
             elif fingers == [0, 1, 1, 1, 0]:
-                self.action = "Square"
-                self.tello.move_left(20)
-                self.tello.move_up(40)
-                self.tello.move_right(40)
-                self.tello.move_down(40)
-                self.tello.move_left(20)
-    
+                if self.fsquare >= 15:
+                    self.action = "Square"
+                    self.tello.move_left(20)
+                    self.tello.move_up(40)
+                    self.tello.move_right(40)
+                    self.tello.move_down(40)
+                    self.tello.move_left(20)
+                    self.action_done = True
+                self.fsquare = self.fsquare + 1
             elif fingers == [0, 0, 1, 0, 0]:
-                self.action = " :( "
-                self.tello.land()
-
-            elif (self.tricks == False) and (fingers != [0, 1, 1, 1, 0]): #not avaiable to do tricks
-                self.tello.rotate_clockwise(45)
-                self.tello.rotate_counter_clockwise(90)
-                self.tello.rotate_clockwise(45)
-
+                if self.fmiddle >= 15:
+                    self.action = " :( "
+                    self.tello.land()
+                    self.action_done = True
+                self.fmiddle = self.fmiddle + 1  
+            elif ((self.battery == False) and (fingers == [1, 0, 0, 0, 0] or fingers == [0, 1, 0, 0, 0] or fingers == [0, 0, 0, 0, 1])): #not avaiable to do tricks
+                if self.fno >= 15:
+                    self.tello.rotate_clockwise(45)
+                    self.tello.rotate_counter_clockwise(90)
+                    self.tello.rotate_clockwise(45)
+                    self.action_done = True
+                self.fno = self.fno + 1      
             else:
                 self.action = " "
 
@@ -95,8 +131,11 @@ class hand_tello_control:
                 self.action = "Follow"
                 self.follow_hand(results)
             elif fingers == [1, 0, 0, 0, 0]:
-                self.action = "Land"
-                self.tello.land()           
+                if self.fland >= 15:
+                    self.action = "Land"
+                    self.tello.land()
+                    self.action_done = True
+                self.fland = self.fland + 1           
             else:
                 self.action = " "
 
