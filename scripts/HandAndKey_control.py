@@ -191,8 +191,8 @@ class hand_tello_control:
         return fingers
 
     def detection_loop(self):
-        with self.mp_hands.Hands(model_complexity=0, min_detection_confidence=0.75,
-                                 min_tracking_confidence=0.5) as hands:
+        with self.mp_hands.Hands(max_num_hands = 1 ,model_complexity=0, min_detection_confidence=0.75,
+                                 min_tracking_confidence=0.25) as hands:
             self.tello.streamoff()  # Ends the current stream, in case it's still opened
             self.tello.streamon()  # Starts a new stream
             while True:
