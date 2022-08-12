@@ -40,3 +40,18 @@ With python-catkin-tools:
 * turn on drone and wait for its front lights to blink amber
 * connect WiFi to drone's access point (e.g. `TELLO_######`)
 * `$ roslaunch tello_driver launch/tello_node.launch`
+
+
+## Using ```HandAndKey_control.py```
+
+1. Takeoff
+- Press ```t``` for the drone to takeoff.
+2. Control the drone with the keyboard
+- Press ```1``` to start the control with the keyboard
+- Use ```w``` to go forward, ```s``` to go backwards, ```d``` to go right and ```a``` to go left
+- Use ```q``` to rotate anticlockwise and ```e``` to rotate clockwise
+3. Control the drone using your *left* hand
+- Press ```m``` to go back to the initial menu
+- Press ```2``` to start the hand control
+- The drone will follow your left hand
+
