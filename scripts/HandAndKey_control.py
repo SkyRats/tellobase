@@ -7,6 +7,7 @@ from djitellopy import Tello
 
 class hand_tello_control:
     def __init__(self):
+
         self.action = " "
         self.mp_drawing = mp.solutions.drawing_utils
         self.mp_drawing_styles = mp.solutions.drawing_styles
@@ -20,6 +21,7 @@ class hand_tello_control:
         self.fmiddle = 1
         self.fno = 1
         self.fland = 1
+        self.tricks = True
 
     def tello_startup(self):
         # For Tello input:
@@ -84,24 +86,28 @@ class hand_tello_control:
                     self.tello.flip_forward() 
                     self.action_done = True
                 self.ffoward = self.ffoward + 1
-            elif fingers == [0, 1, 1, 0, 0] and self.battery ==  True:
+
+            elif fingers == [0, 1, 1, 0, 0] and self.tricks ==  True:
                 if self.fback >= 15:
                     self.action = "flip back"
                     self.tello.flip_back()
                     self.action_done = True
                 self.fback = self.fback + 1
-            elif fingers == [1, 0, 0, 0, 0] and self.battery ==  True:
+
+            elif fingers == [1, 0, 0, 0, 0] and self.tricks ==  True:
                 if self.fright >= 15:
                     self.action = "flip right"
                     self.tello.flip_right()
                     self.action_done = True
                 self.fright = self.fright + 1
-            elif fingers == [0, 0, 0, 0, 1] and self.battery ==  True:
+
+            elif fingers == [0, 0, 0, 0, 1] and self.tricks ==  True:
                 if self.fleft >= 15:
                     self.action = "flip left"
                     self.tello.flip_left()
                     self.action_done = True
                 self.fleft = self.fleft + 1
+
             elif fingers == [0, 1, 1, 1, 0]:
                 if self.fsquare >= 15:
                     self.action = "Square"
@@ -112,13 +118,15 @@ class hand_tello_control:
                     self.tello.move_left(20)
                     self.action_done = True
                 self.fsquare = self.fsquare + 1
+
             elif fingers == [0, 0, 1, 0, 0]:
                 if self.fmiddle >= 15:
                     self.action = " :( "
                     self.tello.land()
                     self.action_done = True
                 self.fmiddle = self.fmiddle + 1  
-            elif ((self.battery == False) and (fingers == [1, 0, 0, 0, 0] or fingers == [0, 1, 0, 0, 0] or fingers == [0, 0, 0, 0, 1])): #not avaiable to do tricks
+                
+            elif ((self.tricks == False) and (fingers == [1, 0, 0, 0, 0] or fingers == [0, 1, 0, 0, 0] or fingers == [0, 0, 0, 0, 1])): #not avaiable to do tricks
                 if self.fno >= 15:
                     self.tello.rotate_clockwise(45)
                     self.tello.rotate_counter_clockwise(90)
