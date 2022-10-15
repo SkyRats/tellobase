@@ -184,6 +184,13 @@ class hand_tello_control:
                 frame_read = self.tello.get_frame_read()  # Stores the current streamed frame
                 image = frame_read.frame
                 self.battery = self.tello.get_battery()
+                if self.battery <= 50:
+
+                    self.tricks = False
+
+                else:
+                    
+                    self.tricks = True
 
                 # To improve performance, optionally mark the image as not writeable to
                 # pass by reference.
