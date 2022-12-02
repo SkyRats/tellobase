@@ -30,7 +30,6 @@ class hand_tello_control:
 
 
     def define_orientation(self, results):
-
         if results.multi_hand_landmarks[0].landmark[4].x < results.multi_hand_landmarks[0].landmark[17].x:
             orientation = "right hand"
         else:
@@ -318,6 +317,21 @@ class hand_tello_control:
             cv2.imshow("image", image)
             if cv2.waitKey(5) & 0xFF == 27:
                 break
+
+            for event in pg.event.get():
+                if event.type == pg.KEYDOWN:
+                    if event.key == pg.K_1:
+                        telloMode = 1
+                    if event.key == pg.K_2:
+                        telloMode = 2
+                    if event.key == pg.K_0:
+                        telloMode = 0
+                    if event.key == pg.K_l:
+                        self.tello.land()
+                    if event.key == pg.K_t:
+                        self.tello.takeoff()
+                    if event.key == pg.K_b:
+                        print("A bateria esta em ", self.tello.get_battery(), "%")
         
             if telloMode == 1:
                 self.key_control()
@@ -337,20 +351,7 @@ class hand_tello_control:
                 print("Obrigado por voar hoje")
             elif telloMode != -1 and telloMode != 1 and telloMode != 2:
                 print("valor invalido!")
-            for event in pg.event.get():
-                if event.type == pg.KEYDOWN:
-                    if event.key == pg.K_1:
-                        telloMode = 1
-                    if event.key == pg.K_2:
-                        telloMode = 2
-                    if event.key == pg.K_0:
-                        telloMode = 0
-                    if event.key == pg.K_l:
-                        self.tello.land()
-                    if event.key == pg.K_t:
-                        self.tello.takeoff()
-                    if event.key == pg.K_b:
-                        print("A bateria esta em ", self.tello.get_battery(), "%")
+            
         
 
 tello_control = hand_tello_control()
