@@ -1,8 +1,11 @@
-import cv2,time
+import cv2,time,random
 from matplotlib.pyplot import show
 import mediapipe as mp
 import pygame as pg
 from djitellopy import Tello
+from datetime import datetime
+from os import mkdir
+
 
 
 class hand_tello_control:
@@ -330,6 +333,9 @@ class hand_tello_control:
                         self.tello.land()
                     if event.key == pg.K_t:
                         self.tello.takeoff()
+                    if event.key == pg.K_j:
+                        print("jogando aqui")
+                        self.follow_camera_game()
                     if event.key == pg.K_b:
                         print("A bateria esta em ", self.tello.get_battery(), "%")
         
@@ -351,8 +357,121 @@ class hand_tello_control:
                 print("Obrigado por voar hoje")
             elif telloMode != -1 and telloMode != 1 and telloMode != 2:
                 print("valor invalido!")
+    
+    def follow_camera_game(self):
+        print("jogandooo")
+        #video = cv2.VideoCapture(0) 
+        #creating the folder where the pictures will be stored and creating VideoWriter object
+        frame_read = self.tello.get_frame_read()
+        image = frame_read.frame
+        dimensions = image.shape
+
+        date = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
+        mkdir(date)
+        video_out = cv2.VideoWriter(f"{date}/pictures.avi",cv2.VideoWriter_fourcc('M','J','P','G'), 1,(dimensions[0], dimensions[1]))
+
+        #game variables. max and min height dictate how far vertically the drone moves.
+        #min_time dictates the least amount of time the drone waits before taking a picture.
+        #(note: min_time is affected by the difficulty)
+        difficulty = None
+        choices = ["left", "right", "up", "down"] 
+        num_pictures = -1
+        min_time = 1
+        maxHeight = 170
+        minHeight = 20
+        #getHeight = 20
+
+        while difficulty != "facil" and difficulty != "medio" and difficulty != "dificil":
+            difficulty = input("Escolha sua dificuldade \n(facil - medio - dificil): ")
+        
+        if difficulty == "facil":
+            dif_factor = 1
+
+        elif difficulty == "medio":
+            dif_factor = 0.85
+
+        else:
+            dif_factor = 0.7
+
+        while(True):
+            try:
+                num_pictures = int(input("Quantas fotos serão tiradas? "))
+                if num_pictures > 0:
+                    break
+                print("Valor invalido")
+            except:
+                print("Valor invalido.")
+
+        for i in range(1, 6):
             
+            print("Começando em", 6 - i)
+            time.sleep(1)
+            
+        print("Começou!")
+
+        for i in range(num_pictures):
+
+            #image = video.read()[1]
+            time.sleep(0.2)
+            getHeight = self.tello.get_height()
+            print("Altura: ", getHeight)
+
+            choice = random.choice(choices)
+
+            if choice == "left":
+                degrees = random.randint(20, 90)
+                print("Girando", degrees, "° para a esquerda \n")
+                self.tello.rotate_counter_clockwise(degrees)
+                time.sleep(dif_factor*(min_time + degrees * 1.75/200))
+
+            elif choice == "right":
+                degrees = random.randint(20, 90)
+                print("Girando", degrees, "° para a direita \n")
+                self.tello.rotate_clockwise(degrees)
+                time.sleep(dif_factor*(min_time + degrees * 1.75/200))
+
+            elif choice == "up": 
+                distance = random.randint(20, 360)
+                if getHeight + distance < maxHeight:
+                    print("Subindo", distance, "cm \n")
+                    self.tello.move_up(distance)
+                    #getHeight += distance
+
+                else: #if it is higher than the max height, move down instead
+                    print("Descendo", distance, "cm \n")
+                    self.tello.move_down(distance)
+                    #getHeight -= distance
+
+                time.sleep(dif_factor*(min_time + distance/20))
+
+            elif choice == "down": 
+                
+                distance = random.randint(20, 60)
+
+                if getHeight - distance > minHeight:
+                    print("Descendo", distance, "cm \n")
+                    self.tello.move_down(distance)
+                    #getHeight -= distance
+                    
+                else: #if it is lower than the min height, move up instead
+                    print("Subindo", distance, "cm \n")
+                    self.tello.move_up(distance)
+                    #getHeight += distance
+
+                time.sleep(dif_factor*(min_time + distance/20))
+
+            frame_read = self.tello.get_frame_read()  # Stores the current streamed frame
+            image = frame_read.frame
+
+            print("Tirando foto!")
+            cv2.imwrite(f"{date}/{i}.jpg", image)
+            video_out.write(image)
+
+        print("Obrigado por jogar! Verifique a pasta", date, "para ver as fotos e o vídeo :)")
+
         
 
 tello_control = hand_tello_control()
 tello_control.main_interface()
+# tello_control.tello_startup()
+# tello_control.follow_camera_game()
