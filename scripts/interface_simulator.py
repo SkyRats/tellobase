@@ -9,7 +9,7 @@ import random
 from os import mkdir
 
 '''
-Drone class
+Classe Drone
 --------------------------------------------------------------------------------------
 __init__()            # inicia mediapipe e variáveis úteis
 init_camera()         # inicia videocapture
@@ -20,7 +20,7 @@ key_control()         # loop de controle com teclado e PyGame
 follow_camera_game()  # nova função com jogo de seguir a câmera
 --------------------------------------------------------------------------------------
 
-Interface class
+Classe Interface
 --------------------------------------------------------------------------------------
 __init__()            # inicia o PyGame e objeto drone
 create_window()       # cria janela do PyGame com instruções de uso
@@ -61,6 +61,7 @@ class Drone:
   
   def init_camera(self):
     self.cap = cv2.VideoCapture(0)
+    print(self.cap)
 
   # definição dos comandos válidos
   def verify_commands(self, vector):
@@ -102,10 +103,6 @@ class Drone:
       cv2.imwrite(save, self.foto)
       return 'hang-loose'
 
-    elif vector == [0, 0, 1, 0, 0]: # Dedo do meio
-      print("Pousar")
-      return 'dedo do meio'
-
     else:
       return 0
 
@@ -132,6 +129,7 @@ class Drone:
       while self.cap.isOpened():
         success, self.image = self.cap.read()
         self.foto = self.image
+        self.abs_area = self.foto.shape[0] * self.foto.shape[1] * 10**(-8)
         if not success:
           print("Ignoring empty camera frame.")
           # If loading a video, use 'break' instead of 'continue'.
@@ -151,8 +149,25 @@ class Drone:
 
         # se detectar mãos na câmera
         if results.multi_hand_landmarks:
-          # para cada mão detectada
-          for hand_landmarks in results.multi_hand_landmarks:
+          true_hand = None
+          larger = 1.75
+
+          # para cada mão detectada, verificar qual é a maior (e se não é muito pequena)
+          for potential_hand in results.multi_hand_landmarks:
+            # coordenadas dos pontos 0, 5 e 17
+            lm0 = potential_hand.landmark[0]
+            lm5 = potential_hand.landmark[5]
+            lm17 = potential_hand.landmark[17]
+
+            # área do triângulo central
+            area = 1/2 * abs(lm0.x * (lm5.y - lm17.y) + lm5.x * (lm17.y - lm0.y) + lm17.x * (lm0.y - lm5.y)) / self.abs_area
+            if area > larger:
+              true_hand = potential_hand
+              larger = area
+          
+          # se existir uma mão única perto o suficiente da câmera
+          if true_hand:
+            hand_landmarks = true_hand
 
             # define o vetor dedos 
             finger_vector = [0, 0, 0, 0, 0]
@@ -173,6 +188,7 @@ class Drone:
             else:
               finger_vector[0] = 1
 
+            # orientação do polegar
             if marks[4].x - marks[17].x > 0:
               self.orientation = 'right'
             else:
@@ -214,31 +230,31 @@ class Drone:
               self.mp_drawing_styles.get_default_hand_landmarks_style(),
               self.mp_drawing_styles.get_default_hand_connections_style())
 
-          # se o vetor dedos tiver sido detectado várias vezes seguidas
-          if self.repeat > self.num_repeat:
-            # encontra o comando correspondente
-            self.verify_commands(finger_vector)
-            # if codigo != 0:
-            #   print(f'Comando {codigo} detectado!')
-            # ação é tomada e variáveis são reiniciadas
-            self.repeat = 0
-            self.prev_vector = [0, 0, 0, 0, 0]
-          
-          # se ainda não tiver o número mínimo de repetições
-          else:
-            if finger_vector == [1, 1, 1, 1, 1]:
-              pixel = (marks[9].x, marks[9].y)
-              self.follow_hand(pixel)
-
+            # se o vetor dedos tiver sido detectado várias vezes seguidas
+            if self.repeat > self.num_repeat:
+              # verifica e realiza o comando correspondente
+              self.verify_commands(finger_vector)
+              # ação é tomada e variáveis são reiniciadas
+              self.repeat = 0
+              self.prev_vector = [0, 0, 0, 0, 0]
+            
+            # se ainda não tiver o número mínimo de repetições para realizar ação
             else:
-              # se for o mesmo do anterior
-              if finger_vector == self.prev_vector:
-                self.repeat += 1
-              # se encontrar um vetor diferente
+              # seguir se detectar mão aberta
+              if finger_vector == [1, 1, 1, 1, 1]:
+                pixel = (marks[9].x, marks[9].y)
+                self.follow_hand(pixel)
+
+              # senão, atualizar vetor e repetir detecção
               else:
-                self.repeat = 0
-              # vetor atual é o vetor anterior da pŕoxima iteração
-              self.prev_vector = finger_vector
+                # se for o mesmo do anterior
+                if finger_vector == self.prev_vector:
+                  self.repeat += 1
+                # se encontrar um vetor diferente
+                else:
+                  self.repeat = 0
+                # vetor atual é o vetor anterior da pŕoxima iteração
+                self.prev_vector = finger_vector
 
         # mostra a imagem com o modelo de mão encontrado
         cv2.imshow('MediaPipe Hands', self.image)
