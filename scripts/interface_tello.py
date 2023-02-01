@@ -15,6 +15,7 @@ Classe Drone
 --------------------------------------------------------------------------------------
 __init__()            # inicia mediapipe e variáveis úteis
 init_camera()         # inicia videocapture
+tello_startup         # inicia objeto tello e se conecta com o drone
 verify_commands()     # verifica vetor dedos e indica ações a serem tomadas pelo drone
 follow_hands()        # se a mão estiver aberta, drone segue o centro da mão
 hand_control()        # loop central de controle com mediapipe hands
@@ -57,6 +58,7 @@ class Drone:
     self.mp_drawing = mp.solutions.drawing_utils
     self.mp_drawing_styles = mp.solutions.drawing_styles
     self.mp_hands = mp.solutions.hands
+    self.tricks = True
 
     # inicializando variáveis
     self.prev_vector = [0, 0, 0, 0, 0]
@@ -76,7 +78,16 @@ class Drone:
   # definição dos comandos válidos
 
   def verify_commands(self, vector):
-    if vector == [0, 1, 0, 0, 0]: #Flips frontais
+
+    if self.tricks == False:
+        if vector == [1, 0, 0, 0, 0] or vector == [0, 1, 0, 0, 0]:
+            print("bateria baixa para fazer o truque!")
+            self.tello.rotate_clockwise(90)
+            self.tello.rotate_counter_clockwise(90) #tentativa de fazer "não"
+
+            return "no"
+
+    elif vector == [0, 1, 0, 0, 0]: #Flips frontais
       print(f"flip {self.orientation_y}")
       if self.orientation_y == 'foward':
         self.tello.flip_forward
@@ -143,6 +154,16 @@ class Drone:
       x_error = 0
     if abs(y_error) < P_tol:
       y_error = 0
+
+    #O ponto (0,0) eh o canto superior esquerdo e o ponto (1,1) eh o canto inferior direito.
+    #Se x_error for negativo, então a mão está a esquerda do centro. O drone precisa ir para a esquerda. Vice-versa
+    #Se y_error for negativo, a mão está acima do centro. O drone precisa ir para cima.
+    #No tello: velocidade X negativa é para a esquerda e velocidade Y negativa é para cima. 
+    # Manteremos, então, o sinal das variáveis na velocidade.
+
+    self.tello.send_rc_control(10*x_error, 0, 10*y_error, 0)
+    time.sleep(0.5)
+    self.tello.send_rc_control(0, 0, 0, 0)
 
     print(f"{round(x_error, 3)}, {round(y_error, 3)}")
 
@@ -243,9 +264,9 @@ class Drone:
             
            #orientação do indicador no eixo Y
             if marks[8].y - marks[5].y < 0:
-              self.orientation_y = 'up'
+              self.orientation_y = 'foward'
             else:
-              self.orientation_y = 'down'
+              self.orientation_y = 'back'
                 
 
             # indicador
