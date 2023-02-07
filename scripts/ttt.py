@@ -43,6 +43,7 @@ class tttDetection:
                 print("player2")
                 return "player2"
 
+        print("not played")
         return "not played"
     
     def most_frequent(self, list):
@@ -190,9 +191,10 @@ class tttDetection:
 if __name__ == "__main__":
     
     #adjust the board
+    capture = cv2.VideoCapture(0)
     while(True):
 
-        capture = cv2.VideoCapture(0)
+        
         success, frame = capture.read(0)
         if cv2.waitKey(1) == ord(" "):
             break
