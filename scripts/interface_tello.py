@@ -21,6 +21,8 @@ follow_hands()        # se a mão estiver aberta, drone segue o centro da mão
 hand_control()        # loop central de controle com mediapipe hands
 key_control()         # loop de controle com teclado e PyGame
 follow_camera_game()  # nova função com jogo de seguir a câmera
+get_tello_battery()   # pega a bateria do tello para ver se consegue dar flips
+tello_no              # faz o drone girar para dizer "nao"
 --------------------------------------------------------------------------------------
 
 Classe Interface
@@ -38,8 +40,9 @@ interface_loop()      # loop principal da interface com os modos de controle
 # Comandos aceitos pelo mediapipe:
 # - Mão aberta -> segue a mão
 # - Polegar -> flips laterais
+# - Indicador -> flips frontais
 # - Hang-loose e rock -> tiram foto
-# - dedo do meio -> pousar
+# - dedo do meio e L -> pousar
 # - indicador, V, 3 e 4 -> sem função ainda
 
 # Comandos aceitos pelo teclado:
@@ -59,55 +62,59 @@ class Drone:
     self.mp_drawing_styles = mp.solutions.drawing_styles
     self.mp_hands = mp.solutions.hands
     self.tricks = True
+    self.height = 0
 
     # inicializando variáveis
     self.prev_vector = [0, 0, 0, 0, 0]
     self.repeat = 0
     self.repeat2 = 0
-    self.num_repeat = 10
+    self.num_repeat = 30
     self.num_repeat2 = 10
 
   def tello_startup(self):
         # For Tello input:
-        self.tello = Tello()  # Starts the tello object
-        self.tello.connect()  # Connects to the drone
-        self.tello.streamon()
-        self.battery = self.tello.get_battery()
-        print(f"Bateria: {self.battery}")
-        
-        if self.battery <= 50:
+    self.tello = Tello()  # Starts the tello object
+    self.tello.connect()  # Connects to the drone
+    self.tello.streamon()
 
-          self.tricks = False
+  def get_tello_battery(self):
 
-        else:
-            
-          self.tricks = True
-       
+    self.battery = self.tello.get_battery()
 
-  # def init_camera(self):
+    print(f"Bateria: {self.battery}")
+      
+    if self.battery <= 50:
 
-  #   self.cap = cv2.VideoCapture(0)
-  #   print(self.cap)
+      self.tricks = False
+
+    else:
+          
+      self.tricks = True
+  
+  def tello_no(self):
+
+    self.tello.rotate_clockwise(90)
+    self.tello.rotate_counter_clockwise(180)
+    self.tello.rotate_clockwise(90)
 
   # definição dos comandos válidos
 
   def verify_commands(self, vector):
 
-    if self.tricks == False:
+    if self.tricks == False: # Se o drone estiver com bateria abaixo de 50%, o drone não faz os flips
+
         if vector == [1, 0, 0, 0, 0] or vector == [0, 1, 0, 0, 0]:
             print("bateria baixa para fazer o truque!")
-            self.tello.rotate_clockwise(90)
-            self.tello.rotate_counter_clockwise(180) #tentativa de fazer "não"
-            self.tello.rotate_clockwise(90)
+            self.tello_no()
 
             return "no"
             
-    if vector == [1, 1, 1, 1, 1]:
+    if vector == [1, 1, 1, 1, 1]: # Seguir a mão
         pixel = (self.marks[9].x, self.marks[9].y)
-        self.follow_hand(pixel)
+        self.follow_hand(pixel, self.marks[12].y, self.marks[0].y)
 
-    if vector == [0, 1, 0, 0, 0]: #Flips frontais
-    #   print(f"flip {self.orientation_y}")
+    if vector == [0, 1, 0, 0, 0]: # Flips frontais
+
       if self.orientation_y == 'foward':
         self.tello.flip_forward()
         print("flip foward")
@@ -122,16 +129,7 @@ class Drone:
       self.tello.rotate_clockwise(360)
       return '2'
 
-    elif vector == [0, 1, 1, 1, 0]:
-      print("Comando 3")
-      return '3'
-
-    elif vector == [0, 1, 1, 1, 1]:
-      print("Comando 4")
-      return '4'
-
     elif vector == [1, 0, 0, 0, 0]: # Flips laterais
-    #   print(f"flip {self.orientation_x}")
 
       if self.orientation_x == 'right':
         self.tello.flip_right()
@@ -147,11 +145,11 @@ class Drone:
       self.tello.land()
       return 'pouso'
     
-    elif vector == [0, 0, 0, 0, 0]: #Se aproxima 20cm e dá uma rodadinha
-      self.tello.move_forward(20)
+    elif vector == [0, 1, 1, 1, 0]: #Se distancia 20cm e dá uma rodadinha
+      self.tello.move_back(20)
       self.tello.rotate_clockwise(360)
-      print("Foward")
-      return 'foward'
+      print("back and turn")
+      return 'back'
     
     elif vector == [1, 0, 0, 0, 1] or vector == [0, 1, 0, 0, 1]: # Hang-Loose e Rock
       print("Tirar e salvar foto")
@@ -168,39 +166,16 @@ class Drone:
     else:
       return 0
 
-  # função de centralização no landmark 9 (central)
-  def follow_hand(self, pixel):
-    P_tol = 0.05
-    x_error = (pixel[0] - 0.5)
-    y_error = (pixel[1] - 0.5)
-    if abs(x_error) < P_tol:
-      x_error = 0
-    if abs(y_error) < P_tol:
-      y_error = 0
-
-    #O ponto (0,0) eh o canto superior esquerdo e o ponto (1,1) eh o canto inferior direito.
-    #Se x_error for negativo, então a mão está a esquerda do centro. O drone precisa ir para a esquerda. Vice-versa
-    #Se y_error for negativo, a mão está acima do centro. O drone precisa ir para cima.
-    #No tello: velocidade X negativa é para a esquerda e velocidade Y negativa é para cima. 
-    # Manteremos, então, o sinal das variáveis na velocidade.
-
-    self.tello.send_rc_control(-int(100*x_error), 0, int(100*y_error), 0)
-    time.sleep(0.5)
-    self.tello.send_rc_control(0, 0, 0, 0)
-
-
-    # print(f"{round(x_error, 3)}, {round(y_error, 3)}")
-
   # controle com as mãos
   def hand_control(self):
     # inicializando mediapipe hands
+    if self.tello.get_height()==0:
+      self.tello.takeoff()
+
     with self.mp_hands.Hands(
         model_complexity=0,
         min_detection_confidence=0.75,
         min_tracking_confidence=0.75) as hands:
-
-    #   self.tello.streamoff()  # Ends the current stream, in case it's still opened
-    #   self.tello.streamon()  # Starts a new stream
 
       #loop de controle
 
@@ -209,11 +184,6 @@ class Drone:
         self.image = self.tello.get_frame_read().frame  # Stores the current streamed frame
         self.foto = self.image
         self.abs_area = self.foto.shape[0] * self.foto.shape[1] * 10**(-8)
-
-        # if not success:
-        #   print("Ignoring empty camera frame.")
-        #   # If loading a video, use 'break' instead of 'continue'.
-        #   continue
 
         # To improve performance, optionally mark the image as not writeable to
         # pass by reference.
@@ -230,7 +200,7 @@ class Drone:
         # se detectar mãos na câmera
         if results.multi_hand_landmarks:
           true_hand = None
-          larger = 0.75
+          larger = 0.5
 
           # para cada mão detectada, verificar qual é a maior (e se não é muito pequena)
           for potential_hand in results.multi_hand_landmarks:
@@ -275,13 +245,12 @@ class Drone:
             else:
               self.orientation_x = 'left'
             
-           #orientação do indicador no eixo Y
+           # orientação do indicador no eixo Y
             if marks[8].y - marks[5].y < 0:
               self.orientation_y = 'foward'
             else:
               self.orientation_y = 'back'
-                
-
+            
             # indicador
             finger_dist1 = ( (marks[8].x - marks[0].x)**2 + (marks[8].y - marks[0].y)**2 )**(1/2)
             if finger_dist1 < TOL*dist0:
@@ -319,15 +288,36 @@ class Drone:
               self.mp_drawing_styles.get_default_hand_connections_style())
 
             self.marks = marks
+
             # se o vetor dedos tiver sido detectado várias vezes seguidas
-            if self.repeat > self.num_repeat:
+            if finger_vector == [1, 1, 1, 1, 1]: #o numero de repetições para seguir a mão eh menor
+
+              if self.repeat2 > self.num_repeat2:
+
+                self.get_tello_battery()
+                self.command = self.verify_commands(finger_vector)
+                self.prev_vector = [0, 0, 0, 0, 0]
+                self.repeat2 = 10
+              
+              else: 
+                if finger_vector == self.prev_vector:
+                    self.repeat2 += 1
+                # se encontrar um vetor diferente
+                else:
+                    self.repeat2 = 0
+                # vetor atual é o vetor anterior da pŕoxima iteração
+                self.prev_vector = finger_vector
+
+            elif self.repeat > self.num_repeat:
               # verifica e realiza o comando correspondente
+              self.get_tello_battery()
               self.command = self.verify_commands(finger_vector)
 
               # realiza o comando
               # ação é tomada e variáveis são reiniciadas
-              self.repeat = 20
+              self.repeat = 30
               self.prev_vector = [0, 0, 0, 0, 0]
+
             
             # se ainda não tiver o número mínimo de repetições para realizar ação
             else:
@@ -347,6 +337,10 @@ class Drone:
                 # vetor atual é o vetor anterior da pŕoxima iteração
                 self.prev_vector = finger_vector
 
+          else:
+
+            self.tello.send_rc_control(0,0,0,0)
+
         # mostra a imagem com o modelo de mão encontrado
         cv2.imshow('MediaPipe Hands', self.image)
         if cv2.waitKey(5) & 0xFF == ord('q'):
@@ -355,6 +349,47 @@ class Drone:
     # self.cap.release()
     cv2.destroyAllWindows()
     cv2.waitKey(1)
+
+      # função de centralização no landmark 9 (central)
+  def follow_hand(self, pixel, ext_up, ext_down):
+    P_tol = 0.05
+    z_error = abs(ext_up - ext_down)
+    print(z_error)
+    x_error = (pixel[0] - 0.5)
+    y_error = (pixel[1] - 0.5)
+    if abs(x_error) < P_tol:
+      x_error = 0
+    if abs(y_error) < P_tol:
+      y_error = 0
+    
+    self.height = self.tello.get_height()
+
+    if self.height >= 200:
+
+      self.tello.move_down(20)
+      print("too high, mooving down")
+      print(self.height)
+
+
+    #O ponto (0,0) eh o canto superior esquerdo e o ponto (1,1) eh o canto inferior direito.
+    #Se x_error for negativo, então a mão está a esquerda do centro. O drone precisa ir para a esquerda. Vice-versa
+    #Se y_error for negativo, a mão está acima do centro. O drone precisa ir para cima.
+
+    if z_error > 0.8:
+
+      z_error = z_error * 50
+      print("too close, moving backwards")
+
+    else:
+
+      z_error = 0
+
+    self.tello.send_rc_control(-int(100*x_error), -int(z_error) , -int(100*y_error), 0)
+    time.sleep(0.5)
+    self.tello.send_rc_control(0, 0, 0, 0)
+
+    # print(f"{round(x_error, 3)}, {round(y_error, 3)}")
+
   
   # Controle pelo teclado
   def key_control(self):
@@ -366,10 +401,7 @@ class Drone:
 
       self.image = self.tello.get_frame_read().frame  # Stores the current streamed frame
 
-    #   if not success:
-    #     print("Ignoring empty camera frame.")
-    #     # If loading a video, use 'break' instead of 'continue'.
-    #     continue
+      self.get_tello_battery()
 
       for event in pg.event.get():
         if event.type == pg.KEYDOWN:
@@ -385,7 +417,6 @@ class Drone:
           if event.key == pg.K_a:
             # self.tello.move_left(20)
             self.tello.send_rc_control(-10,0,0,0) # --> velocidade constante para esquerda
-            self.tello.send_rc_control(-10,0,0,0)
             print("left")
           if event.key == pg.K_d:
             self.tello.move_right(20)
@@ -405,18 +436,42 @@ class Drone:
           if event.key == pg.K_l:
             self.tello.land()
             print("land")
-          if event.key == pg.K_LEFT and self.tricks == True:
-            self.tello.flip_left()
+
+          if event.key == pg.K_LEFT:
+            if self.tricks == True:
+
+              self.tello.flip_left()
+            else: 
+              self.tello_no()
+
             print("flip left")
-          if event.key == pg.K_RIGHT and self.tricks == True:
-            self.tello.flip_right()
+
+          if event.key == pg.K_RIGHT :
+            if self.tricks == True:
+              
+              self.tello.flip_right()
+            else: 
+              self.tello_no()
             print("flip right")
-          if event.key == pg.K_UP and self.tricks == True:
-            self.tello.flip_forward()
+
+          if event.key == pg.K_UP:
+
+            if self.tricks == True:
+              
+              self.tello.flip_foward()
+            else: 
+              self.tello_no()
             print("flip foward")
-          if event.key == pg.K_DOWN and self.tricks == True:
-            self.tello.flip_back()
+
+          if event.key == pg.K_DOWN:
+
+            if self.tricks == True:
+              
+              self.tello.flip_back()
+            else: 
+              self.tello_no()
             print("flip back")
+
           if event.key == pg.K_s:
             self.tello.send_rc_control(0, 0, 0, 0) #se o drone estiver com velocidade setada
             print("stop")
@@ -575,10 +630,6 @@ class Interface:
     print("(3) Jogo 'Siga a câmera'")
 
   def interface_loop(self):
-
-    # self.tello.streamoff()  # Ends the current stream, in case it's still opened
-    # self.tello.streamon()  # Starts a new stream
-
 
     run = True
     while run:
