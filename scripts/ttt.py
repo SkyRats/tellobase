@@ -146,13 +146,19 @@ class tttDetection:
 
         return square_detected, blue_result
     
-    def detect_board(self, tries = 1):
+    def detect_board(self, tries = 25):
         # ?? Tirar o tries já que ele vai rodar enquanto não achar o tabuleiro?
         for _ in range(tries):
             success, self.frame = self.capture.read(0)
             if success == False:
                 raise ConnectionError
-            self.frame = cv2.imread("./ttt1.jpeg")
+            # self.frame = cv2.imread("./player1.png")
+
+            frame_gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+            _, frame_thresh = cv2.threshold(frame_gray, 127, 255,0)
+            cv2.imshow("frame threshold", frame_thresh)
+            if cv2.waitKey(20): key = cv2.waitKey(20) 
+
             board, self.blue_image = self.get_squares(self.frame)
             return board
     
