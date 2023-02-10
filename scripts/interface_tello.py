@@ -34,8 +34,6 @@ interface_loop()      # loop principal da interface com os modos de controle
 --------------------------------------------------------------------------------------
 '''
 
-# Esse é apenas um simulador, ou seja, serve para teste das funções sem o drone real
-
 # Comandos aceitos pelo mediapipe:
 # - Mão aberta -> segue a mão
 # - Polegar -> flips laterais
@@ -61,7 +59,8 @@ class Drone:
     self.mp_drawing_styles = mp.solutions.drawing_styles
     self.mp_hands = mp.solutions.hands
 
-    self.tello.get_current_state()
+    self.state = self.tello.get_current_state()
+    print(self.state)
 
     self.tricks = True
 
@@ -89,7 +88,7 @@ class Drone:
 
     self.battery = self.tello.get_battery()
 
-    print(f"Bateria: {self.battery}")
+    # print(f"Bateria: {self.battery}")
       
     if self.battery <= 50:
       self.tricks = False
@@ -202,7 +201,7 @@ class Drone:
     if self.takeoff == False:
         self.tello.takeoff()
         self.takeoff = True
-        time.sleep(3)
+        time.sleep(5)
         self.tello.move_up(30)
 
     # inicializando mediapipe hands
@@ -371,7 +370,6 @@ class Drone:
                 self.prev_vector = finger_vector
 
           else:
-
             self.tello.send_rc_control(0,0,0,0)
 
         # mostra a imagem com o modelo de mão encontrado
@@ -383,11 +381,10 @@ class Drone:
     cv2.destroyAllWindows()
     cv2.waitKey(1)
 
-      # função de centralização no landmark 9 (central)
+  # função de centralização no landmark 9 (central)
   def follow_hand(self, pixel, ext_up, ext_down):
     P_tol = 0.05
     z_error = abs(ext_up - ext_down)
-    print(z_error)
     x_error = (pixel[0] - 0.5)
     y_error = (pixel[1] - 0.5)
     if abs(x_error) < P_tol:
@@ -403,18 +400,15 @@ class Drone:
       print("too high, mooving down")
       print(self.height)
 
-
     #O ponto (0,0) eh o canto superior esquerdo e o ponto (1,1) eh o canto inferior direito.
     #Se x_error for negativo, então a mão está a esquerda do centro. O drone precisa ir para a esquerda . Vice-versa
     #Se y_error for negativo, a mão está acima do centro. O drone precisa ir para cima (cima dele mesmo).
     
     if z_error > 0.8:
-
       z_error = z_error * 50
       print("too close, moving backwards")
 
     else:
-
       z_error = 0
 
     self.tello.send_rc_control(-int(100*x_error), -int(z_error) , -int(100*y_error), 0)
@@ -424,12 +418,11 @@ class Drone:
 
     # print(f"{round(x_error, 3)}, {round(y_error, 3)}")
 
-  
   # Controle pelo teclado
   def key_control(self):
 
     self.tello.streamoff()  # Ends the current stream, in case it's still opened
-    self.tello.streamon()  # Starts a new stream
+    self.tello.streamon()   # Starts a new stream
 
     while True:
 
@@ -470,6 +463,8 @@ class Drone:
           if event.key == pg.K_l:
             self.tello.land()
             print("land")
+          if event.key == pg.K_b:
+            print(f"Bateria: {self.tello.get_battery()}")
 
           if event.key == pg.K_LEFT:
             if self.tricks == True:
@@ -522,6 +517,13 @@ class Drone:
     cv2.waitKey(1)
 
   def follow_camera_game(self):
+
+    if self.takeoff == False:
+        self.tello.takeoff()
+        self.takeoff = True
+        time.sleep(6)
+        self.tello.move_up(40)
+    
     #creating the folder where the pictures will be stored and creating VideoWriter object
     frame_read = self.tello.get_frame_read()
     image = frame_read.frame
@@ -543,9 +545,9 @@ class Drone:
     minHeight = 20
     #getHeight = 20
 
-    while difficulty != "facil" and difficulty != "medio" and difficulty != "dificil":
-        difficulty = input("Escolha sua dificuldade \n(facil - medio - dificil): ")
-    
+    #while difficulty != "facil" and difficulty != "medio" and difficulty != "dificil":
+        #difficulty = input("Escolha sua dificuldade \n(facil - medio - dificil): ")
+    difficulty = "facil"
     if difficulty == "facil":
         dif_factor = 1
 
@@ -579,30 +581,36 @@ class Drone:
         print("Altura: ", getHeight)
 
         choice = random.choice(choices)
+        deg_choices = [30, 40, 50, 60, 70, 80]
 
         if choice == "left":
-            degrees = random.randint(20, 90)
+            # degrees = random.randint(20, 90)
+            degrees = deg_choices[random.randint(0, 5)]
+
             print("Girando", degrees, "° para a esquerda \n")
-            # self.tello.rotate_counter_clockwise(degrees)
-            time.sleep(dif_factor*(min_time + degrees * 1.75/200))
+            self.tello.rotate_counter_clockwise(degrees)
+            #time.sleep(int(dif_factor*(min_time + degrees * 1.75/200)))
+            time.sleep(2)
 
         elif choice == "right":
-            degrees = random.randint(20, 90)
+            # degrees = random.randint(20, 90)
+            degrees = deg_choices[random.randint(0, 5)]
             print("Girando", degrees, "° para a direita \n")
-            # self.tello.rotate_clockwise(degrees)
-            time.sleep(dif_factor*(min_time + degrees * 1.75/200))
+            self.tello.rotate_clockwise(degrees)
+            #time.sleep(dif_factor*(min_time + degrees * 1.75/200))
+            time.sleep(2)
 
         elif choice == "up": 
             distance = random.randint(20, 360)
             if getHeight + distance < maxHeight:
                 print("Subindo", distance, "cm \n")
-                # self.tello.move_up(distance)
-                #getHeight += distance
+                self.tello.move_up(distance)
+                getHeight += distance
 
             else: #if it is higher than the max height, move down instead
                 print("Descendo", distance, "cm \n")
-                # self.tello.move_down(distance)
-                #getHeight -= distance
+                self.tello.move_down(distance)
+                getHeight -= distance
 
             time.sleep(dif_factor*(min_time + distance/20))
 
@@ -612,19 +620,19 @@ class Drone:
 
             if getHeight - distance > minHeight:
                 print("Descendo", distance, "cm \n")
-                # self.tello.move_down(distance)
-                #getHeight -= distance
+                self.tello.move_down(distance)
+                getHeight -= distance
                 
             else: #if it is lower than the min height, move up instead
                 print("Subindo", distance, "cm \n")
-                # self.tello.move_up(distance)
-                #getHeight += distance
+                self.tello.move_up(distance)
+                getHeight += distance
 
             time.sleep(dif_factor*(min_time + distance/20))
 
         frame_read = self.tello.get_frame_read()  # Stores the current streamed frame
         image = frame_read.frame
-        # success, self.image = self.cap.read()
+        success, self.image = self.cap.read()
 
         print("Tirando foto!")
         cv2.imwrite(f"{date}/{i}.jpg", image)
