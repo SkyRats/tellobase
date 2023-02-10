@@ -25,7 +25,6 @@ get_tello_battery()   # pega a bateria do tello para ver se consegue dar flips
 tello_no()            # faz o drone girar para dizer "nao"
 return_to_pos()       # faz o drone voltar para a posicao anterior ao truque
 --------------------------------------------------------------------------------------
-
 Classe Interface
 --------------------------------------------------------------------------------------
 __init__()            # inicia o PyGame e objeto drone
@@ -33,7 +32,6 @@ create_window()       # cria janela do PyGame com instruções de uso
 print_commands()      # printa comandos possíveis ao final de cada interação
 interface_loop()      # loop principal da interface com os modos de controle
 --------------------------------------------------------------------------------------
-
 '''
 
 # Esse é apenas um simulador, ou seja, serve para teste das funções sem o drone real
@@ -62,8 +60,11 @@ class Drone:
     self.mp_drawing = mp.solutions.drawing_utils
     self.mp_drawing_styles = mp.solutions.drawing_styles
     self.mp_hands = mp.solutions.hands
+
     self.tello.get_current_state()
+
     self.tricks = True
+
     if self.tello.get_height() == 0:
       self.height = 0
       self.takeoff = False
@@ -91,64 +92,58 @@ class Drone:
     print(f"Bateria: {self.battery}")
       
     if self.battery <= 50:
-
       self.tricks = False
-
     else:
-          
       self.tricks = True
   
   def tello_no(self):
 
-    self.tello.rotate_clockwise(90)
-    self.tello.rotate_counter_clockwise(180)
-    self.tello.rotate_clockwise(90)
+    self.tello.rotate_clockwise(45)
+    self.tello.rotate_counter_clockwise(90)
+    self.tello.rotate_clockwise(45)
 
   # vtentativa de voltar para a posicao que estava antes do flip
   def return_to_pos(self, orientation):
 
     if orientation == 'foward':
-      self.tello.move_back(20)
+      self.tello.move_back(50)
       
     elif orientation == 'back':
-      self.tello.move_forward(20)
+      self.tello.move_forward(50)
     
     elif orientation == 'right':
-      self.tello.move_left(20)
+      self.tello.move_left(50)
     
     elif orientation == 'left':
-      self.tello.move_right(20)
+      self.tello.move_right(50)
     
-    self.tello.move_up(20)
 
     return True 
+
 # definição dos comandos válidos
   def verify_commands(self, vector):
 
-    if self.tricks == False: # Se o drone estiver com bateria abaixo de 50%, o drone não faz os flips
-
-        if vector == [1, 0, 0, 0, 0] or vector == [0, 1, 0, 0, 0]:
-            print("bateria baixa para fazer o truque!")
-            self.tello_no()
-
-            
     if vector == [1, 1, 1, 1, 1]: # Seguir a mão
         pixel = (self.marks[9].x, self.marks[9].y)
         self.follow_hand(pixel, self.marks[12].y, self.marks[0].y)
 
-    if vector == [0, 1, 0, 0, 0]: # Flips frontais
+    elif vector == [0, 1, 0, 0, 0]: # Flips frontais
 
-      if self.orientation_y == 'foward':
-        self.flip = self.orientation_y
-        self.tello.flip_forward()
-        print("flip foward")
+      if self.tricks:
 
+        if self.orientation_y == 'foward':
+          self.flip = self.orientation_y
+          self.tello.flip_forward()
+          print("flip foward")
+
+        else:
+          self.tello.flip_back()
+          self.flip = self.orientation_y
+          print("flip back")
+      
       else:
-        self.tello.flip_back()
-        self.flip = self.orientation_y
-        print("flip back")
-
-
+        print("bateria baixa para fazer o truque!")
+        self.tello_no()
 
     elif vector == [0, 1, 1, 0, 0]:
       print("Comando 2")
@@ -157,25 +152,30 @@ class Drone:
 
     elif vector == [1, 0, 0, 0, 0]: # Flips laterais
 
-      if self.orientation_x == 'right':
-        self.tello.flip_right()
-        self.flip = self.orientation_x
-        print("flip right")
-      elif self.orientation_x == 'left':
-        self.tello.flip_left()
-        self.flip = self.orientation_x
-        print("flip left")
+      if self.tricks:
+        
+        if self.orientation_x == 'right':
+          self.tello.flip_right()
+          self.flip = self.orientation_x
+          print("flip right")
 
+        elif self.orientation_x == 'left':
+          self.tello.flip_left()
+          self.flip = self.orientation_x
+          print("flip left")
+
+      else:
+        print("bateria baixa para fazer o truque!")
+        self.tello_no()
+        
     elif vector == [0, 0, 1, 0, 0] or vector == [1, 1, 0, 0, 0]: # Dedo do meio e L de land
       print(f"pousar :(")
       self.tello.land()
-
     
     elif vector == [0, 1, 1, 1, 0]: #Se distancia 20cm e dá uma rodadinha
       self.tello.move_back(20)
       self.tello.rotate_clockwise(360)
       print("back and turn")
-
     
     elif vector == [1, 0, 0, 0, 1] or vector == [0, 1, 0, 0, 1]: # Hang-Loose e Rock
       print("Tirar e salvar foto")
@@ -200,8 +200,11 @@ class Drone:
   def hand_control(self):
     # takeoff
     if self.takeoff == False:
-      self.tello.takeoff()
-      self.takeoff = True
+        self.tello.takeoff()
+        self.takeoff = True
+        time.sleep(3)
+        self.tello.move_up(30)
+
     # inicializando mediapipe hands
     with self.mp_hands.Hands(
         model_complexity=0,
@@ -240,7 +243,6 @@ class Drone:
             lm5 = potential_hand.landmark[5]
             lm17 = potential_hand.landmark[17]
 
-
             # área do triângulo central
             area = 1/2 * abs(lm0.x * (lm5.y - lm17.y) + lm5.x * (lm17.y - lm0.y) + lm17.x * (lm0.y - lm5.y)) / self.abs_area
             if area > larger:
@@ -271,7 +273,7 @@ class Drone:
               finger_vector[0] = 1
 
             # orientação do polegar no eixo X
-            if marks[4].x - marks[17].x > 0:
+            if marks[4].x - marks[17].x < 0:
               self.orientation_x = 'right'
             else:
               self.orientation_x = 'left'
