@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from tttAI import IA
 
 '''
 Class tttDetection
@@ -24,6 +25,7 @@ class tttDetection:
     
     def __init__(self):
         self.capture = cv2.VideoCapture(0)
+        self.ia = IA()
         #self.frame = cv2.imread("./ttt1.jpeg")
 
         # Contornos do player1 (X)
@@ -57,14 +59,14 @@ class tttDetection:
                         
             if cv2.matchShapes(contour, self.player1_cnt, 1, 0.0) < max_tolerance:
                 # print("player1")
-                return "x"
+                return 1
 
             elif cv2.matchShapes(contour, self.player2_cnt, 1, 0.0) < max_tolerance:
                 # print("player2")
-                return "v"
+                return -1
 
         # print("not played")
-        return " "
+        return 0
     
     def most_frequent(self, list):
 
@@ -219,44 +221,64 @@ class tttDetection:
         start_detetection = False
         board = 0
 
+        c_choice = "X"
+        h_choice = "V"
+
         print("Começando o jogo da velha!!")
         print("-------------------------------")
 
-        # Enquanto o jogo não tiver terminado
-        while True:
-            start_detetection = input("Digite qualquer coisa para iniciar uma detecção  ")
+        first = input("Você que começar? [S/N] ")
 
-            if start_detetection:
-
-                # Detectando o tabuleiro
-                while board == 0:
-                    print("Buscando o tabuleiro na imagem...")
-                    board = self.detect_board()
-                print("Tabuleiro encontrado!\n")
-                
-
-                # Lendo o estado do jogo
-                board_state = self.read_board(board)
-                print("\nSituaçaõ atual do jogo:")
-                self.print_board(board_state)
-
+        # Rodando o loop enquanto o tabuleiro não estiver preenchido nem ganho        
+        while len(self.ia.empty_cells(self.ia.board)) > 0 and not self.ia.game_over(self.ia.board):
             
-            start_detetection = False
-                
+            if first in'Nn':
+                self.ia.ai_turn(c_choice, h_choice)
+                # drone indica a jogada
+                first = ''
 
+            ################## JOGADA IA ######################
+            start_detetection = input("Digite qualquer coisa para iniciar uma detecção  ")
+            print()
+
+            # Detectando o tabuleiro
+            while board == 0:
+                print("Buscando o tabuleiro na imagem...")
+                board = self.detect_board()
+            print("Tabuleiro encontrado!\n")
+            
+            # Lendo o estado do jogo
+            board_state = self.read_board(board)
+            print("\nSituaçaõ atual do jogo:")
+            self.print_board(board_state)
+            self.ia.board = board_state
+
+            ############## JOGADA HUMANO ##################
+            self.ia.human_turn(c_choice, h_choice)
+
+            start_detetection = input("Digite qualquer coisa para iniciar uma detecção  ")
+            print()
+
+            # Detectando o tabuleiro
+            while board == 0:
+                print("Buscando o tabuleiro na imagem...")
+                board = self.detect_board()
+            print("Tabuleiro encontrado!\n")
+            
+            # Lendo o estado do jogo
+            board_state = self.read_board(board)
+            print("\nSituaçaõ atual do jogo:")
+            self.print_board(board_state)
+            self.ia.board = board_state
+
+            # jogada ia reiniciando o loop
+            self.ia.ai_turn(c_choice, h_choice)
+            # drone indica a jogada
+    
 
             
 
 if __name__ == "__main__":
-    #adjust the board
-    # capture = cv2.VideoCapture(0)
-    # while(True): 
-    #     success, frame = capture.read(0)
-    #     if cv2.waitKey(1) == ord(" "):
-    #         break
-    #     cv2.imshow("line up board", frame)
-        
-    # capture.release()
 
     detecting = tttDetection()
     detecting.play_ttt()
