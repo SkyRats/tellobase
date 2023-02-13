@@ -1,15 +1,16 @@
 import cv2
 import numpy as np
+import time
 from tttAI import IA
 
 '''
 Class tttDetection
 --------------------------------------------------------------------------------------
-__init__()            # inicia a captura de tela e o contorno dos players
-filter_small()        # 
-match_shape ()        # 
-most_frequent()       # 
-get_common()          # 
+__init__()            # Inicia a captura de tela e o contorno dos players
+filter_small()        # Filtra contornos pequenos que possam atrapalhar a detecção
+match_shape ()        # Detecta a jogada em um quadrado específico do tabuleiro
+most_frequent()       # Dado uma lista, retorna a string mais recorrente
+get_common()          # Dado um conjunto de tabuleiros, seleciona as jogadas mais recorrentes
 get_mask()            # Gera a máscara de cores no range informado
 get_squares()         # Identifica uma região com área mínima na cor desejada (azul)
 detect_board()        # Identifica o tabuleiro na imagem e retorna suas dimensões e coordenadas
@@ -24,12 +25,12 @@ play_ttt()            # Conduz o jogo, esperando e lendo as jogadas
 class tttDetection:
     
     def __init__(self):
-        self.capture = cv2.VideoCapture(0)
+        #self.capture = cv2.VideoCapture(0)
         self.ia = IA()
-        #self.frame = cv2.imread("./ttt1.jpeg")
+        self.frame = cv2.imread("./ttt1.jpeg")
 
         # Contornos do player1 (X)
-        player1 = cv2.imread("player1.png")
+        player1 = cv2.imread("./player1.png")
         player1_gray = 255 - cv2.cvtColor(player1, cv2.COLOR_BGR2GRAY)
         
         _, thresh1 = cv2.threshold(player1_gray, 127, 255, 0)
@@ -37,7 +38,7 @@ class tttDetection:
         self.player1_cnt = contours[0]
 
         # Contornos do player2 (Check mark)
-        player2 = cv2.imread("player2.png")
+        player2 = cv2.imread("./player2.png")
         player2_gray = 255 - cv2.cvtColor(player2, cv2.COLOR_BGR2GRAY)
 
         _, thresh2 = cv2.threshold(player2_gray, 127, 255, 0)
@@ -70,29 +71,29 @@ class tttDetection:
     
     def most_frequent(self, list):
 
-        counter = 0
+        mostFrequent = 0
         result = list[0]
      
         for i in list:
             frequency = list.count(i)
-            if(frequency > counter):
-                counter = frequency
+            if(frequency > mostFrequent):
+                mostFrequent = frequency
                 result = i
 
         return result
 
     def get_common(self, boards):
+
         board_common = [[], [], []]
         for i in range(3):
             for j in range(3):
                 play = []
                 for board in boards:
                     play.append(board[i][j])
-                #play = np.array(play)
+
                 board_common[i].append(self.most_frequent(play))
         
         return board_common
-
       
     def get_mask(self, hsv , lower_color , upper_color):
         # Monta a mascara com os ranges selecionados
@@ -146,43 +147,41 @@ class tttDetection:
 
         return square_detected, blue_result
     
-    def detect_board(self, tries = 25):
-        # ?? Tirar o tries já que ele vai rodar enquanto não achar o tabuleiro?
-        for _ in range(tries):
-            success, self.frame = self.capture.read(0)
-            if success == False:
-                raise ConnectionError
-            # self.frame = cv2.imread("./player1.png")
+    def detect_board(self, tries, wait_time = 0.025, max_tolerance = .6):
+        boards = []
+        print("Quando encontrar o tabuleiro, aperte espaço com a janela selecionada.")
+        while(True):
 
+            #_, self.frame = self.capture.read(0)
+            self.frame = cv2.imread("./ttt1.jpeg")
             frame_gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
             _, frame_thresh = cv2.threshold(frame_gray, 127, 255,0)
             cv2.imshow("frame threshold", frame_thresh)
-            if cv2.waitKey(20): key = cv2.waitKey(20) 
 
-            board, self.blue_image = self.get_squares(self.frame)
-            return board
+            if(cv2.waitKey(1) == ord(" ")):
+                break
+
+        for _ in range(tries):
+            #_, self.frame = self.capture.read(0)
+            self.frame = cv2.imread("./ttt1.jpeg")
+
+            board, _ = self.get_squares(self.frame)
+            if board != 0:
+
+                #cv2.imshow("frame threshold", frame_thresh)
+                boards.append(self.read_board(board, max_tolerance))
+
+            time.sleep(wait_time)
+
+        return self.get_common(boards)
     
-    def read_board(self, board, max_tolerance = .6, wait_time = 50):
-        self.boards = []
+    def read_board(self, board, max_tolerance = .6):
+
         x,y,w,h = board
-
-        """
-        board_squaresX = [ 
-            [x + w * (1/6), x + w * (3/6), x + w * (5/6)],
-            [x + w * (1/6), x + w * (3/6), x + w * (5/6)],
-            [x + w * (1/6), x + w * (3/6), x + w * (5/6)]
-        ]
-
-        board_squaresY = [ 
-            [y + h * (3/6), y + h * (3/6), y + h * (3/6)],
-            [y + h * (5/6), y + h * (5/6), y + h * (5/6)],
-            [y + h * (1/6), y + h * (1/6), y + h * (1/6)]
-        ]
-        """
-        
         board_simple = [[], [], []]
+
         frame_gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-        _, frame_thresh = cv2.threshold(frame_gray, 127, 255,0)
+        _, frame_thresh = cv2.threshold(frame_gray, 127, 255, 0)
 
         cv2.imshow("frame threshold", frame_thresh)
 
@@ -193,22 +192,8 @@ class tttDetection:
                 square_cnts, _ = cv2.findContours(square, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
                 square_cnts = self.filter_small(square_cnts, 25)
 
-                # print("row: ", j + 1, "collum: ", i + 1)
-
                 board_simple[j].append(self.match_shape(square_cnts, max_tolerance))
-
-                # print("------------------")
-                # square = cv2.cvtColor(square, cv2.COLOR_GRAY2BGR)
-                # cv2.imshow("", square)
-
-        cv2.waitKey(wait_time)
-        cv2.imshow('blhttps://github.com/SkyRats/tellobase.gitue', self.blue_image)
-        print("#----------------#")
-        self.boards.append(board_simple)
         
-        board_simple = self.get_common(self.boards)
-        # print("result after", tries, "tries:")
-        print(board_simple)
         return board_simple
 
     def print_board(self, board):
@@ -222,10 +207,9 @@ class tttDetection:
         print("###########################################")
 
     def play_ttt(self):
-        previous_board = []
+
         board_state = []
         start_detetection = False
-        board = 0
 
         c_choice = "X"
         h_choice = "V"
@@ -243,55 +227,23 @@ class tttDetection:
                 # drone indica a jogada
                 first = ''
 
-            ################## JOGADA IA ######################
-            start_detetection = input("Digite qualquer coisa para iniciar uma detecção  ")
-            print()
+            start_detetection = input("Digite qualquer coisa para iniciar uma detecção  \n")
 
-            # Detectando o tabuleiro
-            while board == 0:
-                print("Buscando o tabuleiro na imagem...")
-                board = self.detect_board()
+            board_state = self.detect_board(tries = 25)
             print("Tabuleiro encontrado!\n")
-            
-            # Lendo o estado do jogo
-            board_state = self.read_board(board)
-            print("\nSituaçaõ atual do jogo:")
-            self.print_board(board_state)
+            print("\nSituação atual do jogo:")
             self.ia.board = board_state
 
-            ############## JOGADA HUMANO ##################
-            self.ia.human_turn(c_choice, h_choice)
-
-            start_detetection = input("Digite qualquer coisa para iniciar uma detecção  ")
-            print()
-
-            # Detectando o tabuleiro
-            while board == 0:
-                print("Buscando o tabuleiro na imagem...")
-                board = self.detect_board()
-            print("Tabuleiro encontrado!\n")
-            
-            # Lendo o estado do jogo
-            board_state = self.read_board(board)
-            print("\nSituaçaõ atual do jogo:")
-            self.print_board(board_state)
-            self.ia.board = board_state
-
-            # jogada ia reiniciando o loop
             self.ia.ai_turn(c_choice, h_choice)
+            self.print_board(board_state)
             # drone indica a jogada
-    
-
-            
 
 if __name__ == "__main__":
 
     detecting = tttDetection()
     detecting.play_ttt()
-    cv2.waitKey(0)
 
     detecting.capture.release()
     cv2.destroyAllWindows()
 
-    cv2.waitKey(0)
     
