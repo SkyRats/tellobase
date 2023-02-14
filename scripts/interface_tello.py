@@ -566,8 +566,8 @@ class Drone:
         except:
             print("Valor invalido.")
 
-    for i in range(1, 6):
-        print("Começando em", 6 - i)
+    for i in range(1, 3):
+        print("Começando em", 4 - i)
         time.sleep(1)
         
     print("Começou!\n")
@@ -576,8 +576,7 @@ class Drone:
 
         #image = video.read()[1]
         time.sleep(0.2)
-        # getHeight = self.tello.get_height()
-        getHeight = 100
+        getHeight = self.tello.get_height()
         print("Altura: ", getHeight)
 
         choice = random.choice(choices)
@@ -601,7 +600,7 @@ class Drone:
             time.sleep(2)
 
         elif choice == "up": 
-            distance = random.randint(20, 360)
+            distance = random.randint(20, 100)
             if getHeight + distance < maxHeight:
                 print("Subindo", distance, "cm \n")
                 self.tello.move_up(distance)
