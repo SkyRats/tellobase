@@ -1,7 +1,8 @@
 import mediapipe as mp
 import cv2
 
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
+
 import pygame as pg
 
 import time
@@ -23,6 +24,7 @@ verify_commands()       # verifica vetor dedos e indica ações a serem tomadas 
 hand_keyboard_control() # loop central de controle com mediapipe hands e input do teclado
 follow_hands()          # se a mão estiver aberta, drone segue o centro da mão
 follow_camera_game()    # nova função com jogo de seguir a câmera
+keep_tello_alive()      # função que manda sinal para evitar pouso automático
 -----------------------------------------------------------------------------------------
 
 Classe Interface
@@ -49,7 +51,7 @@ interface_loop()        # loop principal da interface com os modos de controle
 # - t -> take-off
 
 # For webcam simulation ------ #
-SIMULATION = True
+SIMULATION = False
 BATTERY = 65
 # ---------------------------- #
 
@@ -84,6 +86,7 @@ class Drone:
         self.repeat2 = 0
         self.num_repeat = 30
         self.num_repeat2 = 10
+        
 
     # Inicialização do Tello
     def tello_startup(self):
@@ -221,8 +224,8 @@ class Drone:
             cv2.imwrite(save, self.foto)
 
             if not SIMULATION:
-                self.tello.move_up(10)
-                self.tello.move_down(10)
+                self.tello.move_up(20)
+                self.tello.move_down(20)
 
 
     # controle com as mãos e teclado
@@ -232,6 +235,9 @@ class Drone:
             print("Takeoff...")
             if not SIMULATION:
                 self.tello.takeoff()
+                time.sleep(3)
+                self.tello.move_up(40)
+                time.sleep(1)
             self.takeoff = True
 
         # inicializando mediapipe hands
@@ -241,9 +247,16 @@ class Drone:
             min_tracking_confidence=0.75) as hands:
 
             self.control_loop = True
+            self.start = datetime.now()
             while self.control_loop:
+
+                if datetime.now() - self.start > timedelta(seconds=10):
+                    self.keep_tello_alive()
+                    self.start = datetime.now()
+                
                 if not SIMULATION:
                     self.image = self.tello.get_frame_read().frame  # Stores the current streamed frame
+                    
                 else:
                     success, self.image = self.cap.read()
                     if not success:
@@ -413,6 +426,7 @@ class Drone:
 
                 # Se detectar alguma tecla do teclado sendo pressionada
                 for event in pg.event.get():
+                    self.get_tello_battery()
                     if event.type == pg.KEYDOWN:
                         if event.key == pg.K_w:
                             print("Going foward...")
@@ -500,13 +514,20 @@ class Drone:
                             print("Stop!!!")
                             if not SIMULATION:
                                 self.tello.stop # se o drone estiver com velocidade setada
-                        
+                        if event.key == pg.K_k:
+                            print("Checking tello conection...")
+                            if not SIMULATION:
+                                self.keep_tello_alive()
                         if event.key == pg.K_ESCAPE:
                             self.control_loop = False
 
         cv2.destroyAllWindows()
         cv2.waitKey(1)
+    
+    def keep_tello_alive(self):
 
+        if not SIMULATION:#Manda sinal para o tello nao pousar. Criamos uma funcao, pois chamaremos em outra classe
+            self.tello.send_control_command("command")
 
     # função de centralização no landmark 9 (central)
     def follow_hand(self, pixel, ext_up, ext_down):
@@ -606,6 +627,7 @@ class Drone:
             except:
                 print("Valor inválido.")
 
+        self.keep_tello_alive()
         for i in range(1, 4):
             print("Começando em", 4 - i)
             time.sleep(1)
@@ -683,10 +705,9 @@ class Drone:
             time.sleep(0.5)
 
         print("\nObrigado por jogar! Verifique a pasta", date, "para ver as fotos :)")
-        self.cap.release()
+        # self.cap.release()
         cv2.destroyAllWindows()
         cv2.waitKey(1)
-
 
 class Interface:
     def __init__(self):
@@ -724,11 +745,15 @@ class Interface:
     def interface_loop(self):
 
         run = True
-
+        self.tello.keep_tello_alive() # Manda sinal para o drone não pousar
+        self.start = datetime.now()
         d0 = 30*self.f
         d1 = 40*self.f
         d2 = 50*self.f
         while run:
+            if datetime.now() - self.start > timedelta(seconds=10):
+                self.tello.keep_tello_alive()
+                self.start = datetime.now()
             # Adicionar textos na janela do PyGame
             self.win.blit(self.text1, (d0, d0))
             self.win.blit(self.text2, (d0, (d0+d2)))
