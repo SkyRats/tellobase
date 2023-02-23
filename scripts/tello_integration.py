@@ -8,6 +8,7 @@ import pygame as pg
 import time
 import random
 from os import mkdir
+import os
 
 from djitellopy import Tello
 
@@ -85,7 +86,7 @@ class Drone:
         self.repeat = 0
         self.repeat2 = 0
         self.num_repeat = 30
-        self.num_repeat2 = 10
+        self.num_repeat2 = 15
         
 
     # Inicialização do Tello
@@ -111,9 +112,9 @@ class Drone:
     def tello_no(self):
         print(f"Bateria insuficiente! {self.battery}")
         if not SIMULATION:
-            self.tello.rotate_clockwise(45)
-            self.tello.rotate_counter_clockwise(90)
-            self.tello.rotate_clockwise(45)
+            self.tello.rotate_clockwise(30)
+            self.tello.rotate_counter_clockwise(60)
+            self.tello.rotate_clockwise(30)
 
     # Voltar para a posicao que estava antes do flip
     def return_to_pos(self, orientation):
@@ -121,22 +122,22 @@ class Drone:
         if orientation == 'foward':
             print("moving back...")
             if not SIMULATION:
-                self.tello.move_back(50)
+                self.tello.move_back(40)
             
         elif orientation == 'back':
             print("moving foward...")
             if not SIMULATION:
-                self.tello.move_forward(50)
+                self.tello.move_forward(40)
 
         elif orientation == 'right':
             print("moving left...")
             if not SIMULATION:
-                self.tello.move_left(50)
+                self.tello.move_left(40)
 
         elif orientation == 'left':
             print("moving right...")
             if not SIMULATION:
-                self.tello.move_right(50)
+                self.tello.move_right(40)
 
 
     # definição dos comandos válidos
@@ -185,8 +186,8 @@ class Drone:
             else:
                 self.tello_no()
         
-        # Dedo do meio e L de land
-        elif vector == [0, 0, 1, 0, 0] or vector == [1, 1, 0, 0, 0]:
+        # Pouso com L de land
+        elif vector == [1, 1, 0, 0, 0]:
             print(f"Landing...")
             if not SIMULATION:
                 self.tello.land()
@@ -209,7 +210,7 @@ class Drone:
         elif vector == [0, 1, 1, 1, 1]: 
             print("Trick 4...")
             if not SIMULATION:
-                self.tello.move_up(20)
+                self.tello.move_down(20)
 
         # Tirar foto
         elif vector == [1, 0, 0, 0, 1] or vector == [0, 1, 0, 0, 1]: # Hang-Loose e Rock
@@ -220,12 +221,11 @@ class Drone:
             current_time = now.strftime("%H-%M-%S")
             current_day = day.strftime("%b-%d-%Y")
 
+            if not os.path.isdir("fotos"):
+                os.makedirs("fotos")
+
             save = f'fotos/{current_day}--{current_time}.jpg'
             cv2.imwrite(save, self.foto)
-
-            if not SIMULATION:
-                self.tello.move_up(20)
-                self.tello.move_down(20)
 
 
     # controle com as mãos e teclado
@@ -248,6 +248,7 @@ class Drone:
 
             self.control_loop = True
             self.start = datetime.now()
+
             while self.control_loop:
 
                 if datetime.now() - self.start > timedelta(seconds=10):
@@ -256,6 +257,7 @@ class Drone:
                 
                 if not SIMULATION:
                     self.image = self.tello.get_frame_read().frame  # Stores the current streamed frame
+
                     
                 else:
                     success, self.image = self.cap.read()
@@ -283,7 +285,7 @@ class Drone:
                 # se detectar mãos na câmera
                 if results.multi_hand_landmarks:
                     true_hand = None
-                    larger = 0.5
+                    larger = 0.3 # Para detectar mãos menores, diminuir essa variável
 
                     # para cada mão detectada, verificar qual é a maior (e se não é muito pequena)
                     for potential_hand in results.multi_hand_landmarks:
@@ -414,10 +416,10 @@ class Drone:
                             # vetor atual é o vetor anterior da pŕoxima iteração
                             self.prev_vector = finger_vector
 
-                    else:
-                        # Zerar velocidade do drone
-                        if not SIMULATION:
-                            self.tello.send_rc_control(0, 0, 0, 0)
+                    # else:
+                    #     # Zerar velocidade do drone
+                    #     if not SIMULATION:
+                    #         self.tello.send_rc_control(0, 0, 0, 0)
 
                 # mostra a imagem com o modelo de mão encontrado
                 cv2.imshow('MediaPipe Hands', self.image)
@@ -510,14 +512,22 @@ class Drone:
                             else: 
                                 self.tello_no()
 
-                        if event.key == pg.K_BACKSPACE:
-                            print("Stop!!!")
+                        if event.key == pg.K_e:
+                            print("Sending zero velocity...")
                             if not SIMULATION:
-                                self.tello.stop # se o drone estiver com velocidade setada
+                                self.tello.send_rc_control(0, 0, 0, 0)
+
+                        # EMERGÊNCIA - PARA TODOS OS MOTORES
+                        if event.key == pg.K_BACKSPACE:
+                            print("STOP ALL MOTORS!!!")
+                            if not SIMULATION:
+                                self.tello.emergency() # se o drone estiver com velocidade setada
+
                         if event.key == pg.K_k:
                             print("Checking tello conection...")
                             if not SIMULATION:
                                 self.keep_tello_alive()
+
                         if event.key == pg.K_ESCAPE:
                             self.control_loop = False
 
@@ -525,8 +535,8 @@ class Drone:
         cv2.waitKey(1)
     
     def keep_tello_alive(self):
-
-        if not SIMULATION:#Manda sinal para o tello nao pousar. Criamos uma funcao, pois chamaremos em outra classe
+        # Manda sinal para o tello nao pousar. Criamos uma funcao, pois chamaremos em outra classe
+        if not SIMULATION:
             self.tello.send_control_command("command")
 
     # função de centralização no landmark 9 (central)
@@ -552,25 +562,27 @@ class Drone:
         # Se x_error for negativo, então a mão está a esquerda do centro. O drone precisa ir para a esquerda . Vice-versa
         # Se y_error for negativo, a mão está acima do centro. O drone precisa ir para cima (cima dele mesmo).
 
+        # Se estiver muito perto
         if z_error > 0.8:
-            z_error = z_error * 50
             print("Too close! Moving backwards...")
         else:
             z_error = 0
 
         # Cálculo das velocidades
         x_vel = -int(100*x_error)
-        y_vel = -int(z_error)
-        z_vel = -int(100*y_error)
+        y_vel = -int(50*z_error)
+        # z_vel = -int(100*y_error)
+
+        z_vel = 0
 
         if x_vel != 0 or y_vel != 0 or z_vel != 0:
             if not SIMULATION:
-                self.tello.send_rc_control(x_vel, y_vel , z_vel, 0)
-                time.sleep(0.5)
+                self.tello.send_rc_control(x_vel, y_vel, z_vel, 0)
+                time.sleep(0.6)
                 # Note: “x”, “y”, and “z” values can’t be set between -20 – 20 simultaneously.
                 self.tello.send_rc_control(0, 0, 0, 0)
             else:
-                print(f"Send RC control: {-int(100*x_error)}, {-int(z_error)} ,{-int(100*y_error)}, 0")
+                print(f"Send RC control: {x_vel}, {y_vel} ,{z_vel}, 0")
 
         # print(f"{round(x_error, 3)}, {round(y_error, 3)}")
 
