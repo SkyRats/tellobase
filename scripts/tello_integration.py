@@ -10,6 +10,8 @@ import random
 from os import mkdir
 import os
 
+import beepy
+
 from djitellopy import Tello
 
 
@@ -25,7 +27,7 @@ verify_commands()       # verifica vetor dedos e indica ações a serem tomadas 
 hand_keyboard_control() # loop central de controle com mediapipe hands e input do teclado
 follow_hands()          # se a mão estiver aberta, drone segue o centro da mão
 follow_camera_game()    # nova função com jogo de seguir a câmera
-keep_tello_alive()      # função que manda sinal para evitar pouso automático
+keep_tello_alive()      # função que manda sinal para manter o drone conectado
 -----------------------------------------------------------------------------------------
 
 Classe Interface
@@ -57,6 +59,7 @@ BATTERY = 65
 # ---------------------------- #
 
 INTERFACE_FACTOR = 1    # Increase for better resolution monitor
+HAND_SIZE = 1           # Decrease for smaller hands
 
 class Drone:
     def __init__(self):
@@ -86,9 +89,8 @@ class Drone:
         self.repeat = 0
         self.repeat2 = 0
         self.num_repeat = 30
-        self.num_repeat2 = 15
+        self.num_repeat2 = 20
         
-
     # Inicialização do Tello
     def tello_startup(self):
         # For Tello input:
@@ -118,13 +120,8 @@ class Drone:
 
     # Voltar para a posicao que estava antes do flip
     def return_to_pos(self, orientation):
-
-        if orientation == 'foward':
-            print("moving back...")
-            if not SIMULATION:
-                self.tello.move_back(40)
             
-        elif orientation == 'back':
+        if orientation == 'back':
             print("moving foward...")
             if not SIMULATION:
                 self.tello.move_forward(40)
@@ -151,17 +148,10 @@ class Drone:
         # Flips frontais
         elif vector == [0, 1, 0, 0, 0]:
 
-            if self.tricks:
-
-                if self.orientation_y == 'foward':
-                    print("Flip foward!")
-                    if not SIMULATION:
-                        self.tello.flip_forward()
-
-                else:
-                    print("Flip back!")
-                    if not SIMULATION:
-                        self.tello.flip_back()
+            if self.tricks and self.orientation_y == 'back':
+                print("Flip back!")
+                if not SIMULATION:
+                    self.tello.flip_back()
                 
                 self.return_to_pos(self.orientation_y)
             else:
@@ -191,29 +181,27 @@ class Drone:
             print(f"Landing...")
             if not SIMULATION:
                 self.tello.land()
+            beepy.beep(7)
 
-        # Comando 2
-        elif vector == [0, 1, 1, 0, 0]: # Da uma rodadinha
-            print("Trick 2...")
-            if not SIMULATION:
-                self.tello.rotate_clockwise(360)
-
-        # Comando 3
+        # Comando 3 - Rodadinha
         elif vector == [0, 1, 1, 1, 0]: # Se distancia 20cm e dá uma rodadinha
             print("Trick 3...")
             if not SIMULATION:
-                self.tello.move_back(20)
                 self.tello.rotate_clockwise(360)
-                self.tello.move_forward(20)
+                beepy.beep(4)
 
-        # Comando 4
+        # Comando 4 - Quadrado
         elif vector == [0, 1, 1, 1, 1]: 
             print("Trick 4...")
             if not SIMULATION:
-                self.tello.move_down(20)
+                self.tello.move_left(30)
+                self.tello.move_up(30)
+                self.tello.move_right(30)
+                self.tello.move_down(30)
+                beepy.beep(4)
 
         # Tirar foto
-        elif vector == [1, 0, 0, 0, 1] or vector == [0, 1, 0, 0, 1]: # Hang-Loose e Rock
+        elif vector == [1, 0, 0, 0, 1] or vector == [0, 1, 0, 0, 1] or vector == [0, 1, 1, 0, 0]: # Hang-Loose, Rock e Paz
             print("Capture and save foto...")
             now = datetime.now()
             day = date.today()
@@ -227,6 +215,8 @@ class Drone:
             save = f'fotos/{current_day}--{current_time}.jpg'
             cv2.imwrite(save, self.foto)
 
+            beepy.beep(1)
+
 
     # controle com as mãos e teclado
     def hand_keyboard_control(self):
@@ -239,6 +229,8 @@ class Drone:
                 self.tello.move_up(40)
                 time.sleep(1)
             self.takeoff = True
+
+        beepy.beep(5)
 
         # inicializando mediapipe hands
         with self.mp_hands.Hands(
@@ -258,7 +250,6 @@ class Drone:
                 if not SIMULATION:
                     self.image = self.tello.get_frame_read().frame  # Stores the current streamed frame
 
-                    
                 else:
                     success, self.image = self.cap.read()
                     if not success:
@@ -285,7 +276,7 @@ class Drone:
                 # se detectar mãos na câmera
                 if results.multi_hand_landmarks:
                     true_hand = None
-                    larger = 0.3 # Para detectar mãos menores, diminuir essa variável
+                    larger = HAND_SIZE*0.25 # Para detectar mãos menores, diminuir essa variável
 
                     # para cada mão detectada, verificar qual é a maior (e se não é muito pequena)
                     for potential_hand in results.multi_hand_landmarks:
@@ -472,9 +463,15 @@ class Drone:
 
                         if event.key == pg.K_b:
                             if not SIMULATION:
-                                print(f"Bateria: {self.tello.get_battery()}")
+                                print(f"Bateria: {self.tello.get_battery()}%")
                             else:
                                 print(f"Bateria: ?")
+                        
+                        if event.key == pg.K_i:
+                            if not SIMULATION:
+                                print(f"Info: {self.tello.get_current_state()}")
+                            else:
+                                print(f"INFO")
 
                         if event.key == pg.K_LEFT:
                             if self.tricks == True:
@@ -563,6 +560,7 @@ class Drone:
         # Se y_error for negativo, a mão está acima do centro. O drone precisa ir para cima (cima dele mesmo).
 
         # Se estiver muito perto
+        print(z_error)
         if z_error > 0.8:
             print("Too close! Moving backwards...")
         else:
@@ -571,18 +569,22 @@ class Drone:
         # Cálculo das velocidades
         x_vel = -int(100*x_error)
         y_vel = -int(50*z_error)
-        # z_vel = -int(100*y_error)
-
-        z_vel = 0
+        z_vel = -int(100*y_error)
 
         if x_vel != 0 or y_vel != 0 or z_vel != 0:
             if not SIMULATION:
-                self.tello.send_rc_control(x_vel, y_vel, z_vel, 0)
-                time.sleep(0.6)
-                # Note: “x”, “y”, and “z” values can’t be set between -20 – 20 simultaneously.
-                self.tello.send_rc_control(0, 0, 0, 0)
+                mod_x = abs(x_vel)
+
+                if mod_x > 40:
+                    mod_x = 40
+
+                if mod_x >= 20:
+                    if x_vel < 0:
+                        self.tello.move_left(mod_x)
+                    else:
+                        self.tello.move_right(mod_x)
             else:
-                print(f"Send RC control: {x_vel}, {y_vel} ,{z_vel}, 0")
+                print(f"{x_vel} | {y_vel} | {z_vel}")
 
         # print(f"{round(x_error, 3)}, {round(y_error, 3)}")
 
@@ -619,7 +621,7 @@ class Drone:
         #(note: min_time is affected by the difficulty)
         difficulty = None
         choices = ["left", "right", "up", "down"]
-        deg_choices = [30, 40, 50, 60, 70, 80]
+        deg_choices = [30, 40, 50, 60]
         dist_choices = [20, 30, 40]
 
         num_pictures = -1
@@ -657,13 +659,13 @@ class Drone:
             choice = random.choice(choices)
 
             if choice == "left":
-                degrees = deg_choices[random.randint(0, 5)]
+                degrees = deg_choices[random.randint(0, 3)]
                 print("Girando", degrees, "° para a esquerda")
                 if not SIMULATION:
                     self.tello.rotate_counter_clockwise(degrees)
 
             elif choice == "right":
-                degrees = deg_choices[random.randint(0, 5)]
+                degrees = deg_choices[random.randint(0, 3)]
                 print("Girando", degrees, "° para a direita")
                 if not SIMULATION:
                     self.tello.rotate_clockwise(degrees)
@@ -712,6 +714,7 @@ class Drone:
 
             print("Tirando foto!")
             cv2.imwrite(f"{date}/{i}.png", self.frame)
+            beepy.beep(1)
             # video_out.write(image)
 
             time.sleep(0.5)
