@@ -25,7 +25,7 @@ play_ttt()            # Conduz o jogo, esperando e lendo as jogadas
 class tttDetection:
     
     def __init__(self):
-        #self.capture = cv2.VideoCapture(0)
+        self.capture = cv2.VideoCapture(0)
         self.ia = IA()
         self.frame = cv2.imread("./ttt1.jpeg")
 
@@ -149,11 +149,11 @@ class tttDetection:
     
     def detect_board(self, tries, wait_time = 0.025, max_tolerance = .6):
         boards = []
-        print("Quando encontrar o tabuleiro, aperte espaço com a janela selecionada.")
+        print("\nQuando encontrar o tabuleiro, aperte espaço com a janela selecionada.")
         while(True):
 
-            #_, self.frame = self.capture.read(0)
-            self.frame = cv2.imread("./ttt1.jpeg")
+            # _, self.frame = self.capture.read(0)
+            self.frame = cv2.imread("./ttt2.jpeg")
             frame_gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
             _, frame_thresh = cv2.threshold(frame_gray, 127, 255,0)
             cv2.imshow("frame threshold", frame_thresh)
@@ -163,7 +163,7 @@ class tttDetection:
 
         for _ in range(tries):
             #_, self.frame = self.capture.read(0)
-            self.frame = cv2.imread("./ttt1.jpeg")
+            self.frame = cv2.imread("./ttt2.jpeg")
 
             board, _ = self.get_squares(self.frame)
             if board != 0:
@@ -223,20 +223,25 @@ class tttDetection:
         while len(self.ia.empty_cells(self.ia.board)) > 0 and not self.ia.game_over(self.ia.board):
             
             if first in'Nn':
-                self.ia.ai_turn(c_choice, h_choice)
+                jogada_ia = self.ia.ai_turn(c_choice, h_choice)
+                print(f"Jogada do drone : {jogada_ia}")
                 # drone indica a jogada
-                first = ''
+                first = 'nothing'
 
-            start_detetection = input("Digite qualquer coisa para iniciar uma detecção  \n")
+            start_detetection = input("\nDigite qualquer coisa para iniciar uma detecção  \n")
 
             board_state = self.detect_board(tries = 25)
             print("Tabuleiro encontrado!\n")
             print("\nSituação atual do jogo:")
             self.ia.board = board_state
+            self.ia.render(board_state, c_choice, h_choice)
 
-            self.ia.ai_turn(c_choice, h_choice)
-            self.print_board(board_state)
+            jogada_ia = self.ia.ai_turn(c_choice, h_choice)
+            print(f"Jogada do drone : {jogada_ia}")
+            #self.print_board(board_state)
             # drone indica a jogada
+
+            
 
 if __name__ == "__main__":
 
