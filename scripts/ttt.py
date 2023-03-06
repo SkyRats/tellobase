@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import time
+import json
 from tttAI import IA
 from djitellopy import Tello
 import time
@@ -27,56 +28,45 @@ play_ttt()            # Conduz o jogo, esperando e lendo as jogadas
 class tttDetection:
     
     def __init__(self):
-        # self.tello = Tello()
-        self.tello = Tello()  # Starts the tello object
-
+        self.tello = Tello()
         self.tello_startup()
         # self.capture = cv2.VideoCapture(0)
         self.ia = IA()
         # self.frame = cv2.imread("./ttt1.jpeg")
 
-        # Contornos do player1 (X)
-        player1 = cv2.imread("./player1.png")
-        player1_gray = 255 - cv2.cvtColor(player1, cv2.COLOR_BGR2GRAY)
-        
-        _, thresh1 = cv2.threshold(player1_gray, 127, 255, 0)
-        contours, _ = cv2.findContours(thresh1, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        self.player1_cnt = contours[0]
-
-        # Contornos do player2 (Check mark)
-        player2 = cv2.imread("./player2.png")
-        player2_gray = 255 - cv2.cvtColor(player2, cv2.COLOR_BGR2GRAY)
-
-        _, thresh2 = cv2.threshold(player2_gray, 127, 255, 0)
-        contours, _ = cv2.findContours(thresh2, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        self.player2_cnt = contours[0]
+        # Contorno do player1 (X)
+        self.player1_cnt = self.get_player_contour("./player1.png")
+        # Contorno do player2 (Check mark)
+        self.player2_cnt = self.get_player_contour("./player2.png")
     
+    def get_player_contour(self, player_path):
+        player = cv2.imread(player_path)
+        _, thresh = cv2.threshold(player, 127, 255, 0)
+        contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+
+        return contours[0]
+
     def tello_startup(self):
-        # For Tello input:
-        self.tello.connect()  # Connects to the drone
+        self.tello.connect()
         self.tello.streamon()
         # self.tello.takeoff()
 
-
-    def filter_small(self, contours, min_area):
+    def filter_small(self, contours):
         
         filtered_contours = []
 
         for contour in contours:
-            if cv2.contourArea(contour) >= min_area:
+            if cv2.contourArea(contour) >= self.min_area:
                 filtered_contours.append(contour)
 
         return filtered_contours
 
     def match_shape(self, square_cnts, max_tolerance):
         for contour in square_cnts:
-                        
             if cv2.matchShapes(contour, self.player1_cnt, 1, 0.0) < max_tolerance:
-                # print("player1")
                 return 1
 
             elif cv2.matchShapes(contour, self.player2_cnt, 1, 0.0) < max_tolerance:
-                # print("player2")
                 return -1
 
         # print("not played")
@@ -86,7 +76,6 @@ class tttDetection:
 
         mostFrequent = 0
         result = list[0]
-     
         for i in list:
             frequency = list.count(i)
             if(frequency > mostFrequent):
@@ -129,13 +118,13 @@ class tttDetection:
             time.sleep(wait)
             self.tello.move_right(dist)
 
-        if(drone_play == 2):
+        elif(drone_play == 2):
             
             self.tello.move_up(dist)
             time.sleep(wait_after)
             self.tello.move_down
 
-        if(drone_play == 3):
+        elif(drone_play == 3):
             self.tello.move_right(dist)
             time.sleep(wait)
             self.tello.move_up(dist)
@@ -145,22 +134,22 @@ class tttDetection:
             time.sleep(wait)
             self.tello.move_left(dist)
             
-        if(drone_play == 4):
+        elif(drone_play == 4):
             self.tello.move_left(dist)
             time.sleep(wait_after)
             self.tello.move_right(dist)
 
-        if(drone_play == 5):
+        elif(drone_play == 5):
             self.tello.move_forward(dist)
             time.sleep(wait_after)
             self.tello.move_back(dist)
         
-        if(drone_play == 6):
+        elif(drone_play == 6):
             self.tello.move_right(dist)
             time.sleep(wait_after)
             self.tello.move_left(dist)
             
-        if(drone_play == 7):
+        elif(drone_play == 7):
             self.tello.move_left(dist)
             time.sleep(wait)
             self.tello.move_down(dist)
@@ -170,12 +159,12 @@ class tttDetection:
             time.sleep(dist)
             self.tello.move_right(dist)
 
-        if(drone_play == 8):
+        elif(drone_play == 8):
             self.tello.move_down(dist)
             time.sleep(wait_after)
             self.tello.move_up(dist)
             
-        if(drone_play == 9):
+        elif(drone_play == 9):
             self.tello.move_right(dist)
             time.sleep(wait)
             self.tello.move_down(dist)
@@ -230,7 +219,7 @@ class tttDetection:
 
         return square_detected, blue_result
     
-    def detect_board(self, tries, wait_time = 0.025, max_tolerance = .6):
+    def detect_board(self):
         boards = []
         print("\nQuando encontrar o tabuleiro, aperte espaço com a janela selecionada.")
         while(True):
@@ -244,7 +233,7 @@ class tttDetection:
             if(cv2.waitKey(1) == ord(" ")):
                 break
 
-        for _ in range(tries):
+        for _ in range(self.tries):
             #_, self.frame = self.capture.read(0)
             self.frame = self.tello.get_frame_read().frame 
 
@@ -252,9 +241,9 @@ class tttDetection:
             if board != 0:
 
                 #cv2.imshow("frame threshold", frame_thresh)
-                boards.append(self.read_board(board, max_tolerance))
+                boards.append(self.read_board(board, self.max_tolerance))
 
-            time.sleep(wait_time)
+            time.sleep(self.wait_time)
 
         return self.get_common(boards)
     
@@ -273,7 +262,7 @@ class tttDetection:
                 
                 square = frame_thresh[(y + h * (j)//3) : (y + h * (j + 1)//3), (x + w * (i)//3) : (x + w * (i + 1)//3)]
                 square_cnts, _ = cv2.findContours(square, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-                square_cnts = self.filter_small(square_cnts, 15)
+                square_cnts = self.filter_small(square_cnts)
 
                 board_simple[j].append(self.match_shape(square_cnts, max_tolerance))
         
@@ -289,6 +278,17 @@ class tttDetection:
         print()
         print("###########################################")
 
+
+    def calibrate(self):
+        print("calibrating...")
+
+    def read_configs(self):
+        configs = json.load(open("./ttt_configs.json"))
+        self.tries = configs["tries"]
+        self.max_tolerance = configs["max_tolerance"]
+        self.wait_time = configs["wait_time"]
+        self.min_area = configs["min_area"]
+
     def play_ttt(self):
         self.tello_startup()
         self.tello.takeoff()
@@ -301,7 +301,14 @@ class tttDetection:
         print("Começando o jogo da velha!!")
         print("-------------------------------")
 
-        first = input("Você que começar? [S/N] ")
+        willCalibrate = input("Quer calibrar antes de jogar? [S/N]")
+
+        if willCalibrate in "Ss":
+            self.calibrate()
+
+        self.read_configs()
+
+        first = input("Você que começar? [S/N]")
 
         # Rodando o loop enquanto o tabuleiro não estiver preenchido nem ganho        
         while len(self.ia.empty_cells(self.ia.board)) > 0 and not self.ia.game_over(self.ia.board):
@@ -316,7 +323,7 @@ class tttDetection:
 
             start_detetection = input("\nDigite qualquer coisa para iniciar uma detecção  \n")
 
-            board_state = self.detect_board(tries = 25)
+            board_state = self.detect_board()
             print("Tabuleiro encontrado!\n")
             print("\nSituação atual do jogo:")
             self.ia.board = board_state
@@ -329,8 +336,6 @@ class tttDetection:
             #self.print_board(board_state)
             # drone indica a jogada
         self.tello.land()
-
-            
 
 if __name__ == "__main__":
 
