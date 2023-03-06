@@ -1,0 +1,8 @@
+{
+
+    "tries": 25, 
+    "max_tolerance": 0.6,
+    "wait_time": 0.025,
+    "min_area": 15
+
+}
