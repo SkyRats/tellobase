@@ -26,9 +26,8 @@ play_ttt()            # Conduz o jogo, esperando e lendo as jogadas
 
 class tttDetection:
     
-    def __init__(self, tello):
-        # self.tello = Tello()
-        self.tello = tello
+    def __init__(self):
+        self.tello = Tello()
         self.ia = IA()
         
         # Contornos do player1 (X)

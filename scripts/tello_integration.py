@@ -748,15 +748,13 @@ class Interface:
         self.text2 = font2.render('Select this window to control', True, gray, black)
         self.text3 = font2.render('(0) Exit', True, gray, black)
         self.text4 = font2.render('(1) Hands and Keyboard', True, gray, black)
-        self.text5 = font2.render('(2) Tic Tac Toe', True, gray, black)
-        self.text6 = font2.render('(3) Camera Game', True, gray, black)
+        self.text6 = font2.render('(2) Camera Game', True, gray, black)
         self.text7 = font2.render('(Esc) To exit game mode', True, gray, black)
 
     def print_commands(self):
         print("\n(0) Sair")
         print("(1) Controlar com as mãos e teclado")
-        print("(2) Jogo da velha")
-        print("(3) Jogo 'Siga a câmera'")
+        print("(2) Jogo 'Siga a câmera'")
 
     def interface_loop(self):
 
@@ -792,13 +790,6 @@ class Interface:
                         self.print_commands()
 
                     if event.key == pg.K_2:
-                        print("\nIniciando jogo da velha...")
-                        detection = tttDetection(self.tello)
-                        detection.play_ttt()
-                        # self.tello.init_camera()
-                        self.print_commands()
-
-                    if event.key == pg.K_3:
                         print("\nIniciando jogo da câmera...")
                         # self.tello.init_camera()
                         self.tello.follow_camera_game()
