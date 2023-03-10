@@ -2,6 +2,7 @@ import mediapipe as mp
 import cv2
 
 from datetime import datetime, date, timedelta
+from ttt import tttDetection
 
 import pygame as pg
 
@@ -792,6 +793,8 @@ class Interface:
 
                     if event.key == pg.K_2:
                         print("\nIniciando jogo da velha...")
+                        detection = tttDetection(self.tello)
+                        detection.play_ttt()
                         # self.tello.init_camera()
                         self.print_commands()
 

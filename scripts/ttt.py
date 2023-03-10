@@ -26,15 +26,11 @@ play_ttt()            # Conduz o jogo, esperando e lendo as jogadas
 
 class tttDetection:
     
-    def __init__(self):
+    def __init__(self, tello):
         # self.tello = Tello()
-        self.tello = Tello()  # Starts the tello object
-
-        self.tello_startup()
-        # self.capture = cv2.VideoCapture(0)
+        self.tello = tello
         self.ia = IA()
-        # self.frame = cv2.imread("./ttt1.jpeg")
-
+        
         # Contornos do player1 (X)
         player1 = cv2.imread("./player1.png")
         player1_gray = 255 - cv2.cvtColor(player1, cv2.COLOR_BGR2GRAY)
@@ -50,7 +46,7 @@ class tttDetection:
         _, thresh2 = cv2.threshold(player2_gray, 127, 255, 0)
         contours, _ = cv2.findContours(thresh2, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
         self.player2_cnt = contours[0]
-    
+            
     def tello_startup(self):
         # For Tello input:
         self.tello.connect()  # Connects to the drone
@@ -318,7 +314,10 @@ class tttDetection:
                 # drone indica a jogada
                 first = 'nothing'
 
-            start_detetection = input("\nDigite qualquer coisa para iniciar uma detecção  \n")
+            start_detetection = input("\nDigite qualquer coisa para iniciar uma detecção (se quiser sair do jogo, aperte q)  \n")
+
+            if start_detetection in "Qq":
+                break
 
             board_state = self.detect_board(tries = 25)
             print("Tabuleiro encontrado!\n")
