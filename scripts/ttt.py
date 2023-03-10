@@ -189,8 +189,8 @@ class tttDetection:
         
         # Mascara azul
         # Calibrar antes de usar
-        lower_blue = [ 96, 85, 0]
-        upper_blue = [ 145, 230, 255]
+        lower_blue = [ 99, 89, 53]
+        upper_blue = [ 119, 255, 255]
 
         # Criando as máscaras
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -230,16 +230,19 @@ class tttDetection:
 
         return square_detected, blue_result
     
-    def detect_board(self, tries, wait_time = 0.025, max_tolerance = .6):
+    def detect_board(self, tries, wait_time = 0.05, max_tolerance = .6):
         boards = []
         print("\nQuando encontrar o tabuleiro, aperte espaço com a janela selecionada.")
         while(True):
+            
             self.tello.send_control_command("command")
             # _, self.frame = self.capture.read(0)
             self.frame = self.tello.get_frame_read().frame 
+            board, self.blue_img = self.get_squares(self.frame)
             frame_gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
             _, frame_thresh = cv2.threshold(frame_gray, 127, 255,0)
             cv2.imshow("frame threshold", frame_thresh)
+            cv2.imshow("blue", self.blue_img)
 
             if(cv2.waitKey(1) == ord(" ")):
                 break
@@ -248,7 +251,7 @@ class tttDetection:
             #_, self.frame = self.capture.read(0)
             self.frame = self.tello.get_frame_read().frame 
 
-            board, _ = self.get_squares(self.frame)
+            board, self.blue_img = self.get_squares(self.frame)
             if board != 0:
 
                 #cv2.imshow("frame threshold", frame_thresh)
@@ -258,7 +261,7 @@ class tttDetection:
 
         return self.get_common(boards)
     
-    def read_board(self, board, max_tolerance = .6):
+    def read_board(self, board, max_tolerance = 1):
 
         x,y,w,h = board
         board_simple = [[], [], []]
@@ -267,6 +270,7 @@ class tttDetection:
         _, frame_thresh = cv2.threshold(frame_gray, 127, 255, 0)
 
         cv2.imshow("frame threshold", frame_thresh)
+        cv2.imshow("blue", self.blue_img)
 
         for i in range(3):
             for j in range(3):
