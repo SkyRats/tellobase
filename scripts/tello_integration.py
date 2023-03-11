@@ -564,6 +564,8 @@ class Drone:
         print(z_error)
         if z_error > 0.8:
             print("Too close! Moving backwards...")
+            if not SIMULATION:
+                self.tello.move_back(30)
         else:
             z_error = 0
 
