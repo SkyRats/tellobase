@@ -12,46 +12,70 @@ ffmpeg -version
 
 Use your favorite Python package manager to set up Python 2.7 and the following packages:
 
-* numpy 1.15.2
-* av 0.5.2
-* opencv-python 3.4.3.18
-* opencv-contrib-python 3.4.3.18
-* [codec-image-transport](https://github.com/yoshito-n-students/codec_image_transport.git)
+* opencv-python 
+* mediapipe as mp
+* from datetime: datetime, date, timedelta
+* pygame
+* time
+* random
+* os
+* beepy
 
+### 3. Install DJITellopy
 
-### 3. Install ROS
+#### Install using pip
 
-[Install ROS Melodic](http://wiki.ros.org/Installation/Ubuntu) with the `ros-melodic-desktop-full` option.
-This will install Gazebo 9 and OpenCV 3.2, among other things.
+```pip install djitellopy```
 
-### 4. Install tello_driver from source
+For Linux distributions with both python2 and python3 (e.g. Debian, Ubuntu, ...) you need to run
 
-* ```$ cd <CATKIN_WS/SRC>```
-* ```$ git clone --recursive https://github.com/appie-17/tello_driver.git```
-* ```$ cd ..```  
-With python-catkin-tools:
-* ```$ catkin build tello_driver```
-* ```$ source devel/setup.bash```
+```pip3 install djitellopy```
 
+#### Install in developer mode
+Using the commands below you can install the repository in an editable way. This allows you to modify the library and use the modified version as if you had installed it regularly.
 
+```bash
+git clone https://github.com/damiafuentes/DJITelloPy.git
+cd DJITelloPy
+pip install -e .
+```
 
-#### Running the driver
+## Using ```tello_integration.py```
 
-* turn on drone and wait for its front lights to blink amber
-* connect WiFi to drone's access point (e.g. `TELLO_######`)
-* `$ roslaunch tello_driver launch/tello_node.launch`
+1. Automatic takeoff in both modes (1 and 2). Press 1 to "hand and key control" and 2 to play the camera game.
 
+2. Control the drone with the keyboard:
 
-## Using ```HandAndKey_control.py```
+- w : move forward 20 cm
+- s : move back 20 cm
+- a : move left 20 cm
+- d :> move right 20 cm
+- SPACE : move up 20 cm
+- SHIFT : move down 20 cm
+- t : takeoff
+- l : land
+- b : prints battery
+- i : prints tello current state (info)
+- LEFT (<-) : flip left
+- RIGHT (->) : flip right
+- UP : flip forward
+- DOWN : flip back
+- e : sends the drone to have speed 0
+- BACKSPACE : stop all motors (emergency)
+- k : checks tello connection
+- ESCAPE : leaves the loop
 
-1. Takeoff
-- Press ```t``` for the drone to takeoff.
-2. Control the drone with the keyboard
-- Press ```1``` to start the control with the keyboard
-- Use ```w``` to go forward, ```s``` to go backwards, ```d``` to go right and ```a``` to go left
-- Use ```q``` to rotate anticlockwise and ```e``` to rotate clockwise
-3. Control the drone using your *left* hand
-- Press ```m``` to go back to the initial menu
-- Press ```2``` to start the hand control
-- The drone will follow your left hand
+3. In hand and key control, the mediapipe accepted commands are:
+- High Five -> follow the hand
+- Thumb -> side flips
+- Indicator -> front flips
+- Hang-loose, V and rock -> take a picture
+- L -> land
+- 3 -> rotate
+- 4 -> square
 
+4. In camera game, follow the instructions printed in the terminal.
+
+## Using ``` ttt.py```
+
+1.
