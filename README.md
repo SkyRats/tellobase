@@ -10,7 +10,7 @@ ffmpeg -version
 
 ### 2. Set up your Python environment
 
-Use your favorite Python package manager to set up Python 2.7 and the following packages:
+Use your favorite Python package manager to set up Python (we used Python 3.8.10) and the following packages:
 
 * opencv-python 
 * mediapipe as mp
