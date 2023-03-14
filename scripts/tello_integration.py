@@ -40,19 +40,34 @@ interface_loop()        # loop principal da interface com os modos de controle
 -----------------------------------------------------------------------------------------
 '''
 
-# Comandos aceitos pelo mediapipe por enquanto:
+# Comandos aceitos pelo mediapipe:
 # - Mão aberta -> segue a mão
 # - Polegar -> flips laterais
 # - Indicador -> flips frontais
-# - Hang-loose e rock -> tiram foto
+# - Hang-loose, V e rock -> tiram foto
 # - dedo do meio e L -> pousar
-# - indicador, V, 3 e 4 -> sem função definida ainda
+# - 3 -> rodadinha
+# - 4 -> quadrado
 
 # Comandos aceitos pelo teclado:
-# - a, w, s, d, shift, space -> movimentação
-# - setas -> flips
-# - l -> land
-# - t -> take-off
+# w : move forward 20 cm
+# s : move back 20 cm
+# a : move left 20 cm
+# d :> move right 20 cm
+# SPACE : move up 20 cm
+# SHIFT : move down 20 cm
+# t : takeoff
+# l : land
+# b : prints battery
+# i : prints tello current state (info)
+# LEFT (<-) : flip left
+# RIGHT (->) : flip right
+# UP : flip forward
+# DOWN : flip back
+# e : sends the drone to have speed 0
+# BACKSPACE : stop all motors (emergency)
+# k : checks tello connection
+# ESCAPE : leaves the loop
 
 # For webcam simulation ------ #
 SIMULATION = False
