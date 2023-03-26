@@ -765,8 +765,8 @@ class Interface:
         self.text2 = font2.render('Select this window to control', True, gray, black)
         self.text3 = font2.render('(0) Exit', True, gray, black)
         self.text4 = font2.render('(1) Hands and Keyboard', True, gray, black)
-        self.text6 = font2.render('(2) Camera Game', True, gray, black)
-        self.text7 = font2.render('(Esc) To exit game mode', True, gray, black)
+        self.text5 = font2.render('(2) Camera Game', True, gray, black)
+        self.text6 = font2.render('(Esc) To exit game mode', True, gray, black)
 
     def print_commands(self):
         print("\n(0) Sair")
@@ -791,8 +791,7 @@ class Interface:
             self.win.blit(self.text3, (d0, (d0+3*d2)))
             self.win.blit(self.text4, (d0, (d0+3*d2+d1)))
             self.win.blit(self.text5, (d0, (d0+3*d2+2*d1)))
-            self.win.blit(self.text6, (d0, (d0+3*d2+3*d1)))
-            self.win.blit(self.text7, (d0, (d0+5*d2+3*d1)))
+            self.win.blit(self.text6, (d0, (d0+5*d2+3*d1)))
 
             for event in pg.event.get():
                 if event.type == pg.KEYDOWN:
