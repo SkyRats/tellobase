@@ -9,11 +9,13 @@ import time
 Class tttDetection
 --------------------------------------------------------------------------------------
 __init__()            # Inicia a captura de tela e o contorno dos players
+tello_startup()       # Se conecta com o tello e abre câmera
 filter_small()        # Filtra contornos pequenos que possam atrapalhar a detecção
 match_shape ()        # Detecta a jogada em um quadrado específico do tabuleiro
 most_frequent()       # Dado uma lista, retorna a string mais recorrente
 get_common()          # Dado um conjunto de tabuleiros, seleciona as jogadas mais recorrentes
 get_mask()            # Gera a máscara de cores no range informado
+show_drone_play()     # Movimenta o drone de acordo com a jogada escolhida pelo algoritmo
 get_squares()         # Identifica uma região com área mínima na cor desejada (azul)
 detect_board()        # Identifica o tabuleiro na imagem e retorna suas dimensões e coordenadas
 read_board()          # Lê o tabuleiro e retorna seu estado atual de jogadas
@@ -47,11 +49,8 @@ class tttDetection:
         self.player2_cnt = contours[0]
             
     def tello_startup(self):
-        # For Tello input:
-        self.tello.connect()  # Connects to the drone
+        self.tello.connect()
         self.tello.streamon()
-        # self.tello.takeoff()
-
 
     def filter_small(self, contours, min_area):
         
@@ -67,25 +66,22 @@ class tttDetection:
         for contour in square_cnts:
                         
             if cv2.matchShapes(contour, self.player1_cnt, 1, 0.0) < max_tolerance:
-                # print("player1")
                 return 1
 
             elif cv2.matchShapes(contour, self.player2_cnt, 1, 0.0) < max_tolerance:
-                # print("player2")
                 return -1
 
-        # print("not played")
         return 0
     
     def most_frequent(self, list):
 
-        mostFrequent = 0
+        most_frequent = 0
         result = list[0]
      
         for i in list:
             frequency = list.count(i)
-            if(frequency > mostFrequent):
-                mostFrequent = frequency
+            if(frequency > most_frequent):
+                most_frequent = frequency
                 result = i
 
         return result
@@ -104,7 +100,6 @@ class tttDetection:
         return board_common
       
     def get_mask(self, hsv , lower_color , upper_color):
-        # Monta a mascara com os ranges selecionados
         lower = np.array(lower_color)
         upper = np.array(upper_color) 
         mask = cv2.inRange(hsv , lower, upper)
@@ -124,13 +119,13 @@ class tttDetection:
             time.sleep(wait)
             self.tello.move_right(dist)
 
-        if(drone_play == 2):
+        elif(drone_play == 2):
             
             self.tello.move_up(dist)
             time.sleep(wait_after)
             self.tello.move_down
 
-        if(drone_play == 3):
+        elif(drone_play == 3):
             self.tello.move_right(dist)
             time.sleep(wait)
             self.tello.move_up(dist)
@@ -140,22 +135,22 @@ class tttDetection:
             time.sleep(wait)
             self.tello.move_left(dist)
             
-        if(drone_play == 4):
+        elif(drone_play == 4):
             self.tello.move_left(dist)
             time.sleep(wait_after)
             self.tello.move_right(dist)
 
-        if(drone_play == 5):
+        elif(drone_play == 5):
             self.tello.move_forward(dist)
             time.sleep(wait_after)
             self.tello.move_back(dist)
         
-        if(drone_play == 6):
+        elif(drone_play == 6):
             self.tello.move_right(dist)
             time.sleep(wait_after)
             self.tello.move_left(dist)
             
-        if(drone_play == 7):
+        elif(drone_play == 7):
             self.tello.move_left(dist)
             time.sleep(wait)
             self.tello.move_down(dist)
@@ -165,12 +160,12 @@ class tttDetection:
             time.sleep(dist)
             self.tello.move_right(dist)
 
-        if(drone_play == 8):
+        elif(drone_play == 8):
             self.tello.move_down(dist)
             time.sleep(wait_after)
             self.tello.move_up(dist)
             
-        if(drone_play == 9):
+        elif(drone_play == 9):
             self.tello.move_right(dist)
             time.sleep(wait)
             self.tello.move_down(dist)
@@ -210,8 +205,6 @@ class tttDetection:
         min_area = 6000 # Area minima para um quadrado ser contabilizado
     
         contours, _ = cv2.findContours(blue_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-        # Se quiser ver os contornos:
-        # cv2.drawContours(self.frame,contours,-1,(255,0,0),3)
         
         for contour in contours:
             area = cv2.contourArea(contour)
@@ -219,9 +212,6 @@ class tttDetection:
 
                 x,y,w,h=cv2.boundingRect(contour)
                 square_detected = [x,y,w,h]
-
-                # Desenha um retangulo em torno do quadrado detectado (opcional)
-                # cv2.rectangle(self.frame,(x,y),(x+w,y+h),(0,0,255),3)
 
         return square_detected, blue_result
     
@@ -249,7 +239,6 @@ class tttDetection:
             board, self.blue_img = self.get_squares(self.frame)
             if board != 0:
 
-                #cv2.imshow("frame threshold", frame_thresh)
                 boards.append(self.read_board(board, max_tolerance))
 
             time.sleep(wait_time)
@@ -310,7 +299,6 @@ class tttDetection:
                 jogada_ia = self.ia.ai_turn(c_choice, h_choice)
                 self.show_drone_play(jogada_ia)
                 print(f"Jogada do drone : {jogada_ia}")
-                # drone indica a jogada
                 first = 'nothing'
 
             start_detetection = input("\nDigite qualquer coisa para iniciar uma detecção (se quiser sair do jogo, aperte q)  \n")
@@ -326,25 +314,15 @@ class tttDetection:
 
             jogada_ia = self.ia.ai_turn(c_choice, h_choice)
             self.show_drone_play(jogada_ia)
-            
+
             print(f"Jogada do drone : {jogada_ia}")
-            #self.print_board(board_state)
             # drone indica a jogada
         self.tello.land()
-
-            
 
 if __name__ == "__main__":
 
     detecting = tttDetection()
-    # detecting.tello_startup()
-    # detecting.tello.takeoff()
-    # for i in range(1,10):
-    #     detecting.show_drone_play(i)
-    #     print(f"Jogando {i}")
     detecting.play_ttt()
-    # detecting.tello.land()
-
     detecting.capture.release()
     cv2.destroyAllWindows()
 
