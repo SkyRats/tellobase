@@ -340,7 +340,7 @@ class Drone:
                         if marks[8].y - marks[5].y < 0:
                             self.orientation_y = 'back'
                         else:
-                            self.orientation_y = 'foward'
+                            self.orientation_y = 'forward'
                         
                         # indicador
                         finger_dist1 = ( (marks[8].x - marks[0].x)**2 + (marks[8].y - marks[0].y)**2 )**(1/2)
