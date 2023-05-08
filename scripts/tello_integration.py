@@ -71,7 +71,7 @@ interface_loop()        # loop principal da interface com os modos de controle
 
 # For webcam simulation ------ #
 SIMULATION = False
-BATTERY = 65
+BATTERY = 100
 # ---------------------------- #
 
 INTERFACE_FACTOR = 1    # Increase for better resolution monitor
@@ -197,7 +197,7 @@ class Drone:
             print(f"Landing...")
             if not SIMULATION:
                 self.tello.land()
-            beepy.beep(7)
+            beepy.beep(7) 
 
         # Comando 3 - Rodadinha
         elif vector == [0, 1, 1, 1, 0]: # Se distancia 20cm e dá uma rodadinha
@@ -338,9 +338,9 @@ class Drone:
                         
                         # orientação do indicador no eixo Y
                         if marks[8].y - marks[5].y < 0:
-                            self.orientation_y = 'foward'
-                        else:
                             self.orientation_y = 'back'
+                        else:
+                            self.orientation_y = 'foward'
                         
                         # indicador
                         finger_dist1 = ( (marks[8].x - marks[0].x)**2 + (marks[8].y - marks[0].y)**2 )**(1/2)
