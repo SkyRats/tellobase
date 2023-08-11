@@ -1,3 +1,5 @@
+
+# INSTALL VERSION 4.2.0 OF OPENCV: pip install opencv-python==4.2.0.34
 import mediapipe as mp
 import cv2
 
@@ -272,7 +274,8 @@ class Drone:
                         print("Ignoring empty camera frame.")
                         # If loading a video, use 'break' instead of 'continue'.
                         continue
-
+                
+                self.image = cv2.cvtColor(self.image, cv2.COLOR_RGB2BGR)
                 self.foto = self.image
                 
                 self.abs_area = self.foto.shape[0] * self.foto.shape[1] * 10**(-8)
