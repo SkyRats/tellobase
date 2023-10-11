@@ -70,11 +70,11 @@ interface_loop()        # loop principal da interface com os modos de controle
 # ESCAPE : leaves the loop
 
 # For webcam simulation ------ #
-SIMULATION = True
+SIMULATION = False
 BATTERY = 100
 # ---------------------------- #
 
-INTERFACE_FACTOR = 3    # Increase for better resolution monitor
+INTERFACE_FACTOR = 1    # Increase for better resolution monitor
 HAND_SIZE = 1           # Decrease for smaller hands
 
 class Drone:
@@ -165,7 +165,7 @@ class Drone:
         elif vector == [0, 1, 0, 0, 0]:
 
             if self.tricks and self.orientation_y == 'back':
-                print("Cambalhota para trás!")
+                print("Flip back!")
                 if not SIMULATION:
                     self.tello.flip_back()
                 
@@ -179,12 +179,12 @@ class Drone:
             if self.tricks:
             
                 if self.orientation_x == 'right':
-                    print("Cambalhota para a direita!")
+                    print("Flip right!")
                     if not SIMULATION:
                         self.tello.flip_right()
 
                 elif self.orientation_x == 'left':
-                    print("Cambalhota para a esquerda!")
+                    print("Flip left!")
                     if not SIMULATION:
                         self.tello.flip_left()
                 
@@ -193,17 +193,15 @@ class Drone:
                 self.tello_no()
         
         # Pouso com L de land
-        elif vector == [0,0,1,0,0]:
-            print(":( poxa pai")
         elif vector == [1, 1, 0, 0, 0]:
-            print(f"Pousando...")
+            print(f"Landing...")
             if not SIMULATION:
                 self.tello.land()
             beepy.beep(7) 
 
         # Comando 3 - Rodadinha
         elif vector == [0, 1, 1, 1, 0]: # Se distancia 20cm e dá uma rodadinha
-            print("Dando uma rodadinha!")
+            print("Trick 3...")
             if not SIMULATION:
                 self.tello.rotate_clockwise(360)
                 beepy.beep(4)
@@ -220,7 +218,7 @@ class Drone:
 
         # Tirar foto
         elif vector == [1, 0, 0, 0, 1] or vector == [0, 1, 0, 0, 1] or vector == [0, 1, 1, 0, 0]: # Hang-Loose, Rock e Paz
-            print("Tirando foto e salvando...")
+            print("Capture and save foto...")
             now = datetime.now()
             day = date.today()
 
@@ -342,7 +340,7 @@ class Drone:
                         if marks[8].y - marks[5].y < 0:
                             self.orientation_y = 'back'
                         else:
-                            self.orientation_y = 'foward'
+                            self.orientation_y = 'forward'
                         
                         # indicador
                         finger_dist1 = ( (marks[8].x - marks[0].x)**2 + (marks[8].y - marks[0].y)**2 )**(1/2)
@@ -553,200 +551,7 @@ class Drone:
         # Manda sinal para o tello nao pousar. Criamos uma funcao, pois chamaremos em outra classe
         if not SIMULATION:
             self.tello.send_control_command("command")
-    
-    '''
-    
-    PARA A CBR
-    
-    '''
-    
-    def mission_cbr(self):
-        #Faz a missão
-        
-        if self.takeoff == False:
-            print("Takeoff...")
-            if not SIMULATION:
-                self.tello.takeoff()
-                time.sleep(5)
-                self.tello.move_up(40) # ALtura para ir para prateleira
-            else:
-                testing = True
-            self.takeoff = True
-    
 
-        ready_to_read = False
-        
-        finished_reading = False
-        plateleira_position=[300,400,300]
-        tolerancia = 3 # Daria para usar uma tolerancia para checar se a altura está boa, ou algo assim
-
-        
-        while not ready_to_read:
-
-            #Faz a missão para ir para a prateleira, por exemplo:
-            if not SIMULATION:
-                self.tello.move_up(20)
-                self.tello.move_right(300)
-                self.tello.move_forward(100)
-                self.height = self.tello.get_height() # Altura do tello
-                
-            # O tello não tem GPS e não encontrei uma boa forma p ver se chegou na plataforma (?) Talvez usar algo de CV
-            # Dá para pegar a altura do tello, então com isso talvez daria para controlar para percorrer as prateleiras certinho
-            
-            # Monte condição para checar se o TELLO pode começar a percorrer prateleira
-            
-            ready_to_read = True
-        
-        # Percorra as prateleiras com os mesmos tipos de comandos, talvez colocando um hold para identificar os codigos de barra:
-
-            while not finished_reading:
-                
-                if not SIMULATION:
-                    self.image = self.tello.get_frame_read().frame  # Stores the current streamed frame
-
-                else:
-                    success, self.image = self.cap.read()
-                    if not success:
-                        print("Ignoring empty camera frame.")
-                        continue
-
-                self.foto = self.image
-
-                # Agora coloque aqui a detecção do codigo de barras, e vejam o intervalo de tempo com que vocês querem detectar
-                # Use o self.foto para mandar para o loop por exemplo
-
-                self.bar_detector(self.foto)
-
-                # Uma alternativa para isso é fazer uma maquina de estado que nem no indoor e outdoor. Ou pior dos casos, talvez dê para movimentar o tello
-                # na mão e pegar o frame dele pelo PC (?), não tenho certeza se dá
-
-                cv2.imshow('Image', self.image)
-                if cv2.waitKey(5) & 0xFF == ord('q'):
-                    finished_reading = True
-
-                # Se detectar alguma tecla do teclado sendo pressionada (mover o Tello caso a missão dê errado?)
-                for event in pg.event.get():
-                    self.get_tello_battery()
-                    if event.type == pg.KEYDOWN:
-                        if event.key == pg.K_w:
-                            print("Going foward...")
-                            if not SIMULATION:
-                                self.tello.move_forward(20)
-
-                        if event.key == pg.K_s:
-                            print("Going back...")
-                            if not SIMULATION:
-                                self.tello.move_back(20)
-
-                        if event.key == pg.K_a:
-                            print("Going left...")
-                            if not SIMULATION:
-                                self.tello.move_left(20)
-
-                        if event.key == pg.K_d:
-                            print("Going right...")
-                            if not SIMULATION:
-                                self.tello.move_right(20)
-
-                        if event.key == pg.K_SPACE:
-                            print("Going up...")
-                            if not SIMULATION:
-                                self.tello.move_up(20)
-
-                        if event.key == pg.K_LSHIFT:
-                            print("Going down...")
-                            if not SIMULATION:
-                                self.tello.move_down(20)
-
-                        if event.key == pg.K_t:
-                            print("Takeoff...")
-                            if not SIMULATION:
-                                self.tello.takeoff()
-
-                        if event.key == pg.K_l:
-                            print("Landing...")
-                            if not SIMULATION:
-                                self.tello.land()
-
-                        if event.key == pg.K_b:
-                            if not SIMULATION:
-                                print(f"Bateria: {self.tello.get_battery()}%")
-                            else:
-                                print(f"Bateria: ?")
-                        
-                        if event.key == pg.K_i:
-                            if not SIMULATION:
-                                print(f"Info: {self.tello.get_current_state()}")
-                            else:
-                                print(f"INFO")
-
-                        if event.key == pg.K_LEFT:
-                            if self.tricks == True:
-                                print("Flip left!")
-                                if not SIMULATION:
-                                    self.tello.flip_left()
-                                self.return_to_pos('left')
-                            else: 
-                                self.tello_no()
-
-                        if event.key == pg.K_RIGHT :
-                            if self.tricks == True:
-                                print("Flip right!")
-                                if not SIMULATION:
-                                    self.tello.flip_right()
-                                self.return_to_pos('right')
-                            else: 
-                                self.tello_no()
-
-                        if event.key == pg.K_UP:
-                            if self.tricks == True:
-                                print("Flip foward!")
-                                if not SIMULATION:
-                                    self.tello.flip_forward()
-                                self.return_to_pos('foward')
-                            else: 
-                                self.tello_no()
-
-                        if event.key == pg.K_DOWN:
-                            if self.tricks == True:
-                                print("Flip back!")
-                                if not SIMULATION:
-                                    self.tello.flip_back()
-                                self.return_to_pos('back')
-                            else: 
-                                self.tello_no()
-
-                        if event.key == pg.K_e:
-                            print("Sending zero velocity...")
-                            if not SIMULATION:
-                                self.tello.send_rc_control(0, 0, 0, 0)
-
-                        # EMERGÊNCIA - PARA TODOS OS MOTORES
-                        if event.key == pg.K_BACKSPACE:
-                            print("STOP ALL MOTORS!!!")
-                            if not SIMULATION:
-                                self.tello.emergency() # se o drone estiver com velocidade setada
-
-                        if event.key == pg.K_k:
-                            print("Checking tello conection...")
-                            if not SIMULATION:
-                                self.keep_tello_alive()
-
-                        if event.key == pg.K_ESCAPE:
-                            finished_reading = True
-                            
-
-        cv2.destroyAllWindows()
-        cv2.waitKey(1)
-    
-    def bar_detector(self, image):
-        
-        #Detectar imagem
-
-        foto = image
-
-        # Processa a imagem e mostra na tela as infos
-    
     # função de centralização no landmark 9 (central)
     def follow_hand(self, pixel, ext_up, ext_down):
 
@@ -961,14 +766,12 @@ class Interface:
         self.text3 = font2.render('(0) Exit', True, gray, black)
         self.text4 = font2.render('(1) Hands and Keyboard', True, gray, black)
         self.text5 = font2.render('(2) Camera Game', True, gray, black)
-        self.text7=  font2.render('(3) CBR', True, gray, black)
         self.text6 = font2.render('(Esc) To exit game mode', True, gray, black)
 
     def print_commands(self):
         print("\n(0) Sair")
         print("(1) Controlar com as mãos e teclado")
         print("(2) Jogo 'Siga a câmera'")
-        print("(3) CBR")
 
     def interface_loop(self):
 
@@ -988,9 +791,7 @@ class Interface:
             self.win.blit(self.text3, (d0, (d0+3*d2)))
             self.win.blit(self.text4, (d0, (d0+3*d2+d1)))
             self.win.blit(self.text5, (d0, (d0+3*d2+2*d1)))
-            self.win.blit(self.text7, (d0, (d0+3*d2+3*d1)))
-            self.win.blit(self.text6, (d0, (d0+5*d2+4*d1)))
-
+            self.win.blit(self.text6, (d0, (d0+5*d2+3*d1)))
 
             for event in pg.event.get():
                 if event.type == pg.KEYDOWN:
@@ -1009,12 +810,6 @@ class Interface:
                         # self.tello.init_camera()
                         self.tello.follow_camera_game()
                         self.print_commands()
-
-                    if event.key == pg.K_3:
-                        print("\nIniciando missão...")
-                        # self.tello.init_camera()
-                        self.print_commands()
-                        self.tello.mission_cbr()
 
             pg.display.update()
 
