@@ -7,7 +7,9 @@ import os
 
 #seconds until picture is taken
 PICTURE_TIME = 3
+FLASH_TIME = 0.8
 
+#simulates a Tello movement action
 def simulate_move():
     sleep(randint(2,5))
     print("Tello is moving...")
@@ -15,22 +17,28 @@ def simulate_move():
     if randint(0, 9) == 0:
         raise ConnectionError("Command was not properly relayed to DJI Tello.")
 
-def get_frame():
-    return cv2.imread("/home/guilherme/Pictures/bruh.png")
-
 def state_visualizer(tello_state, pipe_output):
-
-    counter = 0
-
     cap = cv2.VideoCapture(0)
-    sleep(1)
+    counter = 0
 
     while(tello_state != b'stop'):
         _, frame = cap.read()
         cv2.imshow("Game", frame)
+        cv2.waitKey(1)
         
         if tello_state == b'picture':
             print("Taking picture!")
+            start_time = time.time()
+            elapsed = 0
+            while(elapsed < FLASH_TIME):
+                _, frame = cap.read()
+                elapsed = time.time() - start_time
+                
+                flash_percentage = (elapsed/FLASH_TIME)
+                frame = cv2.multiply(frame, (flash_percentage, flash_percentage, flash_percentage, 1))
+                cv2.imshow("Game", frame)
+                cv2.waitKey(1)
+            
             cv2.imwrite(f"{path}/{counter}.png", frame)
             counter += 1
             tello_state = b'idle'
@@ -39,15 +47,12 @@ def state_visualizer(tello_state, pipe_output):
             tello_state = pipe_output.recv()
         
 def command_issuer(pipe_input):
-
     while(True):
         try:
-            pipe_input.send(b'idle')
-
             simulate_move()
 
-            pipe_input.send(b'picture')
             sleep(PICTURE_TIME)
+            pipe_input.send(b'picture')
 
         except:
             print("Tello error! Closing processes...")
