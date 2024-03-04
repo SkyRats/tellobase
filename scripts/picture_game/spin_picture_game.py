@@ -63,8 +63,9 @@ while(True):
 
             sleep(1)
             
-            frame = cv2.cvtColor(cap.frame, cv2.COLOR_RGB2BGR)
+            frame = cap.frame
             cv2.imwrite(f"{path}/{dir_name}/picture_{index}.png", frame)
+
             index += 1
             pictures_til_change += 1
 

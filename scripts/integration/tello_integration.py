@@ -2,7 +2,7 @@ import mediapipe as mp
 import cv2
 
 from datetime import datetime, date, timedelta
-from ttt import tttDetection
+#from ttt import tttDetection
 
 import pygame as pg
 
