@@ -2,41 +2,31 @@ import os
 import cv2
 import sys
 
-if __name__ == "__main__":
-    # sys.argv[0] is the script name, and sys.argv[1:] contains the arguments
-    args = sys.argv[1:]
-
-    # Print the string arguments
-    for arg in args:
-        print(arg)
-
 def get_all_pngs(folder_path):
     filenames = os.listdir(folder_path)
     pngs = [filename for filename in filenames if filename.lower().endswith('.png')]
     full_pathnames = [os.path.join(folder_path, png) for png in pngs]
     return full_pathnames
 
+def get_filename_without_extension(file_path):
+    return os.path.splitext(os.path.basename(file_path))[0]
+
 if __name__ == "__main__":
-    folder_path = "/home/software/Documents/tellobase/scripts/picture_game/spingame_9/"
+    # sys.argv[0] is the script name, and sys.argv[1:] contains the arguments
+    args = sys.argv[1:]
 
-    png_files = get_all_pngs(folder_path)
+    # Print the string arguments
+    for arg in args:
+        print("DIRNAME: ")
+        print(arg)
 
-    for png_file in png_files:
-        image = cv2.imread("/home/software/Documents/tellobase/scripts/picture_game/spingame_9/picture_0.png")
-        print(png_file)
+        png_files = get_all_pngs(arg)
 
+        for png_file in png_files:
+            image = cv2.imread(png_file)
+            new_image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
+            filename_without_extension = get_filename_without_extension(png_file)+".png"
 
-
-cv2.imshow("Image", image)
-
-cv2.waitKey(0)
-
-cv2.imshow("Image", cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
-
-# Wait for the user to press a key
-cv2.waitKey(0)
- 
-# Close all windows
-cv2.destroyAllWindows()
-
+            cv2.imwrite(filename_without_extension, new_image)
+            print(png_file)
