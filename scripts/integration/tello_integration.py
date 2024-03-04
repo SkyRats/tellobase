@@ -2,7 +2,7 @@ import mediapipe as mp
 import cv2
 
 from datetime import datetime, date, timedelta
-from ttt import tttDetection
+#from ttt import tttDetection
 
 import pygame as pg
 
@@ -232,6 +232,13 @@ class Drone:
             cv2.imwrite(save, self.foto)
 
             beepy.beep(1)
+        
+        #dedo do meio
+        elif vector == [1, 0, 1, 0, 0]:
+            if not SIMULATION:
+                self.tello.flip_forward()
+                self.tello.move_back(30)
+                beepy.beep(4)
 
 
     # controle com as mãos e teclado
