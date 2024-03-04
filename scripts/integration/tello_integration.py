@@ -233,12 +233,12 @@ class Drone:
 
             beepy.beep(1)
         
-        #dedo do meio
+        #Dedo do meio
         elif vector == [1, 0, 1, 0, 0]:
             if not SIMULATION:
                 self.tello.flip_forward()
                 self.tello.move_back(30)
-                beepy.beep(4)
+                beepy.beep(7)
 
 
     # controle com as mãos e teclado
