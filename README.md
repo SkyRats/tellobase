@@ -2,11 +2,14 @@
 
 ## What to learn
 
-1. Setup - Linux & Python
+1. Setup - Linux & python
 2. Games
-  2.1 [TTT (Tick Tack Toe)](./ttt.md)
-  2.2 [Tello Integration](./tello_integration.md)
-  2.3 SpinGame
+
+   - [TTT (Tick Tack Toe)](./ttt.md)
+
+   - [Tello Integration](./tello_integration.md)
+
+   - SpinGame
 
 ## Setup
 
@@ -14,16 +17,17 @@
 
 - Ubuntu >= 18.04
   - ffmpeg >= 3.4.4
-  - python >= 3.x.x **(*)**
+  - python >= 3.x.x
 
-#### (*) Python2 might work
-
-To check ffmpeg version use: ```ffmpeg -version```
+*To check ffmpeg version use: ```ffmpeg -version```*
 
 ### 2. Python environment
 
 There are a number of dependencies that you need to have!
-You can install them quickly by using ```pip3 install -r requirements.txt```
+
+Install them with:
+
+```pip3 install -r requirements.txt```
 
 ### EXTRA: Install DJITellopy - Developer mode
 
