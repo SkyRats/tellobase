@@ -10,6 +10,7 @@
    - [Tello Integration](./tello_integration.md)
 
    - SpinGame
+3. [Images & Videos](./media/media.md)
 
 ## Setup
 
@@ -27,7 +28,7 @@ There are a number of dependencies that you need to have!
 
 Install them with:
 
-```pip3 install -r requirements.txt```
+```pip3 install -r ./scripts/requirements.txt```
 
 ### EXTRA: Install DJITellopy - Developer mode
 

@@ -1,34 +1,45 @@
-from time import sleep
 import time
+from time import sleep
 import cv2
 import random
 import os
 from djitellopy import Tello
+
+# -v --> Verbose
+
+verbose = False
+if '-v' or '--v' or '--verbose' in sys.argv:
+    print("Verbose mode enabled")
 
 PICTURES_UNTILL_CHANGE = 3
 DOWN_LIMIT = 80
 UP_LIMIT = 230
 SLEEP_FOR = 2
 
-path = os.getcwd()
-dir_name = "spingame_1"
-dir_num = 1
+def get_parent(n): # n-grand parent of directory
+    result = os.path.abspath(__file__)
+    for _ in range(n):
+        result = os.path.dirname(result)
+    return result
 
-for dir in os.listdir(path):
-    try:
-        print(dir)
-        n = dir.split("_")[1]
-        if int(n) >= dir_num:
-            dir_num = int(n) + 1
-    except:
-        pass
+media_dir = os.path.join(get_parent(3), "media")
 
-dir_name = f"spingame_{dir_num}"
-os.mkdir(dir_name)
+# Check if the media directory exists
+if os.path.exists(media_dir):
+    print("Media will be stored at:", media_dir)
+else:
+    print("Creating 'media' folder in tellobase!")
+    os.mkdir(media_dir)
+
+timestamp = time.strftime("%Y%m%d%H%M%S")
+dir_name = f"spingame_{timestamp}"
+
+os.mkdir(os.path.join(media_dir, dir_name))
 
 tello = Tello()
 tello.connect()
 tello.streamon()
+
 cap = tello.get_frame_read()
 
 sleep(0.2)
@@ -40,7 +51,6 @@ index = 0
 pictures_til_change = 0
 
 dist = tello.get_distance_tof()
-print(os.getcwd())
 
 while(True):
     try:
@@ -63,8 +73,8 @@ while(True):
 
             sleep(1)
             
-            frame = cap.frame
-            cv2.imwrite(f"{path}/{dir_name}/picture_{index}.png", frame)
+            frame = cv2.cvtColor(cap.frame, cv2.COLOR_RGB2BGR)
+            cv2.imwrite(f"{media_dir}/{dir_name}/picture_{index}.png", frame)
 
             index += 1
             pictures_til_change += 1
