@@ -39,6 +39,7 @@ os.mkdir(os.path.join(media_dir, dir_name))
 tello = Tello()
 tello.connect()
 tello.streamon()
+
 cap = tello.get_frame_read()
 
 sleep(0.2)
@@ -72,7 +73,7 @@ while(True):
 
             sleep(1)
             
-            frame = cap.frame
+            frame = cv2.cvtColor(cap.frame, cv2.COLOR_RGB2BGR)
             cv2.imwrite(f"{media_dir}/{dir_name}/picture_{index}.png", frame)
 
             index += 1
@@ -80,7 +81,6 @@ while(True):
 
     except KeyboardInterrupt:
         tello.streamoff()
-        exit
         break
 
 tello.streamoff()
