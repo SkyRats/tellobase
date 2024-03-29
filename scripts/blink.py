@@ -78,8 +78,9 @@ def faceTrack(img):
   Yrosto = positionsy["243"]
   cv2.circle(img, (Xrosto, Yrosto), radius=1, color=(255, 0, 0), thickness=5)
   #checa se o rosto esta no centro
-  if Xm-50<=Xrosto<=Xm+50 and Ym-50<=Yrosto<=Ym+50:
+  if Xm-100<=Xrosto<=Xm+100 and Ym-100<=Yrosto<=Ym+100:
     print("Rosto centralizado")
+  #centralizacao
   else:
     if Ym-Yrosto>100:
       tellinho.move_up(20)
