@@ -1,5 +1,5 @@
 ## Using ```blink.py```
-This is a code developed to connect with the DJITello drone as part of the 2023 version of the "Tello Lúdico" project. In this game, you can control the drone through blinks!   
+This is a code developed to connect with the DJITello drone as part of the 2024 version of the "Tello Lúdico" project. In this game, you can control the drone through blinks!   
 * Make sure you have installed the following libraries:
   > OpenCV (python) -  https://docs.opencv.org/4.x/d2/de6/tutorial_py_setup_in_ubuntu.html
   ```bash
